@@ -845,10 +845,18 @@ function displayProperties(component) {
 
 // ===== Input Toggle =====
 window.toggleInput = function(inputId) {
-    const input = state.diagram.inputs.find(i => i.id === inputId);
-    if (!input) return;
+    console.log('🔘 Toggle input clicked:', inputId);
     
+    const input = state.diagram.inputs.find(i => i.id === inputId);
+    if (!input) {
+        console.error('❌ Input not found:', inputId);
+        console.log('   Available inputs:', state.diagram.inputs.map(i => i.id));
+        return;
+    }
+    
+    // Toggle state
     input.state = !input.state;
+    console.log(`   Input ${input.id} (I${input.pinNumber}) state: ${input.state ? 'ON' : 'OFF'}`);
     
     // Update linked components
     input.componentIds.forEach(compId => {
@@ -856,8 +864,10 @@ window.toggleInput = function(inputId) {
         if (component) {
             if (component.type === 'NO_CONTACT') {
                 component.state = input.state;
+                console.log(`     Updated NO contact ${compId}: ${component.state}`);
             } else if (component.type === 'NC_CONTACT') {
-                component.state = !input.state;
+                component.state = !input.state; // NC is inverted
+                console.log(`     Updated NC contact ${compId}: ${component.state}`);
             }
         }
     });
@@ -867,6 +877,7 @@ window.toggleInput = function(inputId) {
     
     // If simulation is running, trigger evaluation
     if (state.ui.isSimulationRunning) {
+        console.log('   🔄 Triggering logic evaluation...');
         evaluateLogic();
     }
 };
@@ -947,38 +958,99 @@ function scanCycle() {
 }
 
 function evaluateLogic() {
-    // Evaluate each row for complete path from L+ to N
-    for (let row = 0; row < CONFIG.grid.rows; row++) {
-        const rowComponents = state.diagram.components.filter(c => c.position.y === row);
-        if (rowComponents.length === 0) continue;
-        
-        // Sort by x position
-        rowComponents.sort((a, b) => a.position.x - b.position.x);
-        
-        // Evaluate row - path must conduct from left to right
-        let rowEnergized = true;
-        
-        for (const comp of rowComponents) {
-            const typeInfo = COMPONENT_TYPES[comp.type];
-            
-            if (comp.type === 'NO_CONTACT') {
-                // NO Contact: Conducts when input is TRUE
-                rowEnergized = rowEnergized && comp.state;
-            } else if (comp.type === 'NC_CONTACT') {
-                // NC Contact: Conducts when input is FALSE (inverted logic)
-                rowEnergized = rowEnergized && !comp.state;
-            } else if (typeInfo.isWire || typeInfo.isBranch || typeInfo.isCorner) {
-                // Wires and branches pass through - no logic change
-                // (In future: handle branch OR logic)
-            } else if (typeInfo.isOutput) {
-                // Output coil is set based on row state
-                comp.state = rowEnergized;
-            }
-        }
+    console.log('🔧 Evaluating logic with V2 formulas...');
+    
+    // Get all outputs
+    const outputs = state.diagram.components.filter(c => c.type === 'OUTPUT_COIL');
+    
+    if (outputs.length === 0) {
+        console.log('  ℹ️  No outputs to evaluate');
+        return;
     }
+    
+    // For each output, use the generated formula from V2 analysis
+    outputs.forEach(output => {
+        if (output.pinAssignment === null) return;
+        
+        // Run V2 analysis to get formula
+        const result = detectBranchesV2(output, state.diagram.components, CONFIG.grid.rows);
+        
+        if (!result || result.length === 0 || !result[0] || result[0].length === 0) {
+            console.log(`  ⚠️  No formula for Q${output.pinAssignment}`);
+            output.state = false;
+            return;
+        }
+        
+        const formula = result[0][0]; // Get the formula string
+        console.log(`  📝 Q${output.pinAssignment} formula: ${formula}`);
+        
+        // Evaluate the formula with current input states
+        const result_value = evaluateFormula(formula);
+        output.state = result_value;
+        
+        console.log(`  ✅ Q${output.pinAssignment} = ${result_value ? 'ON' : 'OFF'}`);
+    });
+    
+    // Update output list in UI
+    updateOutputsFromComponents();
     
     // Check for state changes and log only if changed
     checkAndLogStateChanges();
+}
+
+/**
+ * Evaluate a boolean formula string with current input states
+ * Formula uses I1, I2, !I3 notation
+ * Returns true/false based on current input states
+ */
+function evaluateFormula(formula) {
+    if (!formula || formula === 'true') return true;
+    if (formula === 'false') return false;
+    
+    // Build evaluation context with current input states
+    const context = {};
+    
+    // Add all inputs to context
+    state.diagram.inputs.forEach(input => {
+        const varName = `I${input.pinNumber}`;
+        context[varName] = input.state;
+    });
+    
+    // Replace !I notation with NOT operator
+    // Convert: !I1 -> !context.I1
+    let jsFormula = formula.replace(/!I(\d+)/g, '!context.I$1');
+    
+    // Convert: I1 -> context.I1 (but not already prefixed)
+    jsFormula = jsFormula.replace(/(?<!context\.)I(\d+)/g, 'context.I$1');
+    
+    // Convert && and || to JavaScript operators (already correct)
+    // Formula is now ready to evaluate
+    
+    try {
+        const result = eval(jsFormula);
+        return Boolean(result);
+    } catch (error) {
+        console.error('❌ Formula evaluation error:', error);
+        console.error('   Formula:', formula);
+        console.error('   JS Formula:', jsFormula);
+        console.error('   Context:', context);
+        return false;
+    }
+}
+
+/**
+ * Update output objects from component states
+ */
+function updateOutputsFromComponents() {
+    state.diagram.outputs.forEach(outputObj => {
+        const component = state.diagram.components.find(c => 
+            c.type === 'OUTPUT_COIL' && 
+            c.pinAssignment === outputObj.pinNumber
+        );
+        if (component) {
+            outputObj.state = component.state;
+        }
+    });
 }
 
 function checkAndLogStateChanges() {
