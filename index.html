@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLC Ladder Diagram Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔌 PLC Ladder Diagram Simulator</h1>
+            <div class="header-controls">
+                <button id="newDiagram" class="btn btn-secondary">New</button>
+                <button id="saveDiagram" class="btn btn-secondary">Save</button>
+                <button id="loadDiagram" class="btn btn-secondary">Load</button>
+                <button id="clearDiagram" class="btn btn-danger">Clear</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Sidebar - Component Palette -->
+            <aside class="sidebar sidebar-left">
+                <h2>Components</h2>
+                
+                <div class="component-category">
+                    <h3>Input Contacts</h3>
+                    <div class="component-list">
+                        <button class="component-btn" data-type="NO_CONTACT" title="Normally Open Contact">
+                            <span class="component-symbol">┤ ├</span>
+                            <span class="component-label">NO Contact</span>
+                        </button>
+                        <button class="component-btn" data-type="NC_CONTACT" title="Normally Closed Contact">
+                            <span class="component-symbol">┤/├</span>
+                            <span class="component-label">NC Contact</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="component-category">
+                    <h3>Output Coils</h3>
+                    <div class="component-list">
+                        <button class="component-btn" data-type="OUTPUT_COIL" title="Output Coil">
+                            <span class="component-symbol">─( )─</span>
+                            <span class="component-label">Output</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="component-category">
+                    <h3>Wiring</h3>
+                    <div class="component-list">
+                        <button class="component-btn" data-type="HORIZONTAL_WIRE" title="Horizontal Wire">
+                            <span class="component-symbol">─</span>
+                            <span class="component-label">H-Wire</span>
+                        </button>
+                        <button class="component-btn" data-type="VERTICAL_WIRE" title="Vertical Wire">
+                            <span class="component-symbol">│</span>
+                            <span class="component-label">V-Wire</span>
+                        </button>
+                        <button class="component-btn" data-type="CORNER_DOWN_RIGHT" title="L1: Loop Start (└)">
+                            <span class="component-symbol">└</span>
+                            <span class="component-label">L1 (└)</span>
+                        </button>
+                        <button class="component-btn" data-type="CORNER_DOWN_LEFT" title="L2: Loop End (┘)">
+                            <span class="component-symbol">┘</span>
+                            <span class="component-label">L2 (┘)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="component-category">
+                    <h3>Logic & Branches</h3>
+                    <div class="component-list">
+                        <button class="component-btn" data-type="BRANCH_POINT" title="Branch Point (OR Logic)">
+                            <span class="component-symbol">┬</span>
+                            <span class="component-label">Branch</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>Tools</h3>
+                    <button id="deleteTool" class="btn btn-danger btn-block">
+                        🗑️ Delete Mode
+                    </button>
+                    <button id="selectTool" class="btn btn-secondary btn-block">
+                        👆 Select Mode
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Center - Ladder Grid -->
+            <main class="ladder-workspace">
+                <div class="workspace-controls">
+                    <button id="runSimulation" class="btn btn-success">▶️ Run</button>
+                    <button id="stopSimulation" class="btn btn-danger" disabled>⏹️ Stop</button>
+                    <button id="stepSimulation" class="btn btn-secondary">⏯️ Step</button>
+                    <span class="status-indicator">
+                        <span id="statusDot" class="status-dot status-stopped"></span>
+                        <span id="statusText">Stopped</span>
+                    </span>
+                </div>
+
+                <div class="grid-container">
+                    <canvas id="ladderCanvas"></canvas>
+                </div>
+
+                <div class="grid-info">
+                    <span id="cursorPosition">Position: (-, -)</span>
+                    <span id="selectedComponent">Selected: None</span>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - I/O and Properties -->
+            <aside class="sidebar sidebar-right">
+                <!-- Input Panel -->
+                <div class="io-panel">
+                    <h2>Inputs</h2>
+                    <div id="inputList" class="io-list">
+                        <p class="empty-message">No inputs assigned</p>
+                    </div>
+                    <button id="addInput" class="btn btn-secondary btn-small">+ Add Input</button>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="io-panel">
+                    <h2>Outputs</h2>
+                    <div id="outputList" class="io-list">
+                        <p class="empty-message">No outputs assigned</p>
+                    </div>
+                    <button id="addOutput" class="btn btn-secondary btn-small">+ Add Output</button>
+                </div>
+
+                <!-- Properties Panel -->
+                <div class="properties-panel">
+                    <h2>Properties</h2>
+                    <div id="propertiesContent" class="properties-content">
+                        <p class="empty-message">Select a component to view properties</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Modal for Pin Assignment -->
+    <div id="pinModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Assign Pin</h2>
+            <form id="pinAssignmentForm">
+                <div class="form-group">
+                    <label for="pinNumber">Pin Number:</label>
+                    <input type="number" id="pinNumber" min="0" max="15" required>
+                </div>
+                <div class="form-group">
+                    <label for="pinLabel">Label:</label>
+                    <input type="text" id="pinLabel" placeholder="e.g., Start Button" required>
+                </div>
+                <div class="form-group">
+                    <label for="pinDescription">Description:</label>
+                    <textarea id="pinDescription" placeholder="Optional description"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Assign</button>
+                    <button type="button" class="btn btn-secondary" id="cancelPin">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="analysis-v2.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

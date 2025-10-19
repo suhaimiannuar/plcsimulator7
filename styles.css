@@ -1,0 +1,556 @@
+/* ===== CSS Variables ===== */
+:root {
+    --primary-color: #2196F3;
+    --secondary-color: #607D8B;
+    --success-color: #4CAF50;
+    --danger-color: #F44336;
+    --warning-color: #FF9800;
+    --dark-bg: #1e1e1e;
+    --medium-bg: #2d2d2d;
+    --light-bg: #3d3d3d;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #555555;
+    --grid-line: #404040;
+    --grid-rail-left: #F44336;
+    --grid-rail-right: #212121;
+    --component-active: #4CAF50;
+    --component-inactive: #2196F3;
+}
+
+/* ===== Global Styles ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--dark-bg);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+/* ===== Container Layout ===== */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ===== Header ===== */
+.header {
+    background-color: var(--medium-bg);
+    border-bottom: 2px solid var(--border-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ===== Main Content Layout ===== */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    background-color: var(--medium-bg);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.sidebar-left {
+    width: 250px;
+}
+
+.sidebar-right {
+    width: 280px;
+    border-right: none;
+    border-left: 1px solid var(--border-color);
+}
+
+.sidebar h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.sidebar h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===== Component Palette ===== */
+.component-category {
+    margin-bottom: 1.5rem;
+}
+
+.component-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.component-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.component-btn:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.component-btn.active {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.component-symbol {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  user-select: none;
+}
+
+/* Canvas styling */
+#ladderCanvas {
+    background-color: #1a1a1a;
+    border: 2px solid var(--border-color);
+    cursor: crosshair;
+}
+
+/* Component list styling */
+.component-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.component-label {
+    font-size: 0.9rem;
+}
+
+.tool-section {
+    margin-top: 2rem;
+}
+
+/* ===== Ladder Workspace ===== */
+.ladder-workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--dark-bg);
+    overflow: hidden;
+}
+
+.workspace-controls {
+    background-color: var(--medium-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.status-indicator {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-stopped {
+    background-color: var(--danger-color);
+}
+
+.status-running {
+    background-color: var(--success-color);
+    animation: pulse 1.5s infinite;
+}
+
+.status-paused {
+    background-color: var(--warning-color);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ===== Grid Container ===== */
+.grid-container {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background-color: var(--dark-bg);
+    padding: 1rem;
+}
+
+#ladderCanvas {
+    display: block;
+    cursor: crosshair;
+    background-color: var(--dark-bg);
+}
+
+.grid-info {
+    background-color: var(--medium-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    display: flex;
+    gap: 2rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* ===== I/O Panel ===== */
+.io-panel {
+    margin-bottom: 1.5rem;
+}
+
+.io-list {
+    margin-bottom: 0.5rem;
+}
+
+.io-item {
+    background-color: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.io-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.io-item-label {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pin-badge {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.io-toggle {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background-color: var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.io-toggle.active {
+    background-color: var(--success-color);
+}
+
+.io-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.io-toggle.active::after {
+    transform: translateX(26px);
+}
+
+.io-item-state {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.output-indicator {
+    width: 100%;
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.output-indicator.active {
+    background-color: var(--success-color);
+    box-shadow: 0 0 10px var(--success-color);
+}
+
+.empty-message {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 1rem;
+    text-align: center;
+}
+
+/* ===== Properties Panel ===== */
+.properties-panel {
+    background-color: var(--light-bg);
+    border-radius: 4px;
+    padding: 1rem;
+}
+
+.properties-content {
+    font-size: 0.9rem;
+}
+
+.property-group {
+    margin-bottom: 1rem;
+}
+
+.property-label {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.property-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn-block {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.btn-small {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+}
+
+/* ===== Modal ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s;
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background-color: var(--medium-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    color: var(--text-secondary);
+    float: right;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: var(--text-primary);
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+/* ===== Form ===== */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--light-bg);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+    .sidebar-left,
+    .sidebar-right {
+        width: 220px;
+    }
+}
+
+@media (max-width: 992px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100% !important;
+        max-height: 200px;
+    }
+}
