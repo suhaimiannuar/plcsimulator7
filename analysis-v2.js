@@ -42,12 +42,16 @@ function detectBranchesV2(outputComponent, components, gridRows) {
     const loops = identifyLoops(branches, outputRow, components, gridRows);
     console.log('🔍 V2: Detected loops:', loops);
     
+    // Step 2.1: Build loop hierarchy (detect nested loops)
+    const loopHierarchy = buildLoopHierarchy(loops);
+    console.log('🔍 V2: Loop hierarchy:', loopHierarchy);
+    
     // Step 2.5: Find series components (not in any loop)
     const seriesComponents = findSeriesComponents(loops, outputRow, components);
     console.log('🔍 V2: Components not found in Loop (series components):', seriesComponents);
     
-    // Step 3: Generate final formula
-    const finalFormula = generateFinalFormula(loops, seriesComponents);
+    // Step 3: Generate final formula (with nested loop support)
+    const finalFormula = generateFinalFormula(loops, loopHierarchy, seriesComponents);
     console.log('🔍 V2: Final Formula:', finalFormula);
     
     return finalFormula ? [[finalFormula]] : [];
@@ -394,6 +398,88 @@ function generateLoopFormula(nodes) {
 }
 
 /**
+ * Build loop hierarchy by detecting nested loops
+ * A loop is nested if its rectangle is completely inside another loop's rectangle
+ */
+function buildLoopHierarchy(loops) {
+    console.log('\n📍 Step 2.1: Building loop hierarchy (detecting nested loops)');
+    
+    const hierarchy = loops.map(loop => ({
+        loop: loop,
+        parent: null,
+        children: [],
+        level: 0 // 0 = root, 1 = nested once, 2 = nested twice, etc.
+    }));
+    
+    // For each loop, check if it's inside another loop
+    for (let i = 0; i < loops.length; i++) {
+        const currentLoop = loops[i];
+        const currentLeftX = currentLoop.topLeft.isLplus ? 0 : currentLoop.topLeft.x;
+        const currentRightX = currentLoop.topRight.x;
+        const currentTopY = currentLoop.mainRow;
+        const currentBottomY = currentLoop.branchRow;
+        
+        console.log(`\n  Checking ${currentLoop.id}:`);
+        console.log(`    Rectangle: X[${currentLeftX}, ${currentRightX}] Y[${currentTopY}, ${currentBottomY}]`);
+        
+        // Check against all other loops
+        for (let j = 0; j < loops.length; j++) {
+            if (i === j) continue; // Skip self
+            
+            const potentialParent = loops[j];
+            const parentLeftX = potentialParent.topLeft.isLplus ? 0 : potentialParent.topLeft.x;
+            const parentRightX = potentialParent.topRight.x;
+            const parentTopY = potentialParent.mainRow;
+            const parentBottomY = potentialParent.branchRow;
+            
+            // Check if current loop is INSIDE potential parent
+            // A loop is inside if:
+            // - Its X range is within parent's X range
+            // - Its Y range is within parent's Y range
+            // - Its branch row is between parent's top and bottom (but not equal to parent's branch row)
+            const isInsideX = currentLeftX >= parentLeftX && currentRightX <= parentRightX;
+            const isInsideY = currentBottomY > parentTopY && currentBottomY < parentBottomY;
+            
+            if (isInsideX && isInsideY) {
+                console.log(`    ✅ NESTED inside ${potentialParent.id}`);
+                
+                // Check if this is the closest parent (smallest containing loop)
+                if (!hierarchy[i].parent || 
+                    (parentRightX - parentLeftX) < (hierarchy[i].parent.topRight.x - (hierarchy[i].parent.topLeft.isLplus ? 0 : hierarchy[i].parent.topLeft.x))) {
+                    
+                    // Remove from old parent's children if exists
+                    if (hierarchy[i].parent) {
+                        const oldParentIndex = loops.indexOf(hierarchy[i].parent);
+                        hierarchy[oldParentIndex].children = hierarchy[oldParentIndex].children.filter(c => c !== currentLoop);
+                    }
+                    
+                    // Set new parent
+                    hierarchy[i].parent = potentialParent;
+                    hierarchy[j].children.push(currentLoop);
+                    hierarchy[i].level = hierarchy[j].level + 1;
+                }
+            }
+        }
+        
+        if (!hierarchy[i].parent) {
+            console.log(`    ℹ️  Root level loop (not nested)`);
+        }
+    }
+    
+    // Log final hierarchy
+    console.log('\n  📊 LOOP HIERARCHY:');
+    hierarchy.forEach(h => {
+        const indent = '    ' + '  '.repeat(h.level);
+        console.log(`${indent}${h.loop.id} (Level ${h.level})${h.parent ? ' → parent: ' + h.parent.id : ''}`);
+        if (h.children.length > 0) {
+            console.log(`${indent}  Children: ${h.children.map(c => c.id).join(', ')}`);
+        }
+    });
+    
+    return hierarchy;
+}
+
+/**
  * Find components NOT in any loop (series components on main branch)
  * Uses elimination method: all contacts on main row that aren't inside loop rectangles
  */
@@ -460,31 +546,27 @@ function findSeriesComponents(loops, mainRow, components) {
 
 /**
  * Generate final formula by combining loop formulas and series components
- * Step 3: 
- * 1. Combine all loop formulas with AND
- * 2. Add series components with AND
+ * Step 3: Handles nested loops by treating them as part of parent's path
+ * 1. For root loops: generate formula recursively including nested loops
+ * 2. Combine root loop formulas with AND
+ * 3. Add series components with AND
  */
-function generateFinalFormula(loops, seriesComponents) {
-    console.log('\n📍 Step 3: Generating Final Formula');
+function generateFinalFormula(loops, loopHierarchy, seriesComponents) {
+    console.log('\n📍 Step 3: Generating Final Formula (with nested loop support)');
     
     const formulaParts = [];
     
-    // Step 3.1: Combine loop formulas with AND
-    if (loops.length > 0) {
-        console.log(`  Combining ${loops.length} loop formula(s) with AND`);
-        
-        const loopFormulas = loops
-            .filter(loop => loop.formula)
-            .map(loop => loop.formula);
-        
-        if (loopFormulas.length === 1) {
-            formulaParts.push(loopFormulas[0]);
-            console.log(`    Single loop: ${loopFormulas[0]}`);
-        } else if (loopFormulas.length > 1) {
-            // Multiple loops - AND them together
-            const combinedLoops = loopFormulas.join(' && ');
-            formulaParts.push(combinedLoops);
-            console.log(`    Combined loops: ${combinedLoops}`);
+    // Step 3.1: Generate formulas for root-level loops only
+    // (nested loops will be included within their parent's formula)
+    const rootLoops = loopHierarchy.filter(h => h.level === 0);
+    
+    console.log(`  Processing ${rootLoops.length} root-level loop(s)`);
+    
+    for (const rootHierarchy of rootLoops) {
+        const formula = generateLoopFormulaRecursive(rootHierarchy, loopHierarchy);
+        if (formula) {
+            formulaParts.push(formula);
+            console.log(`    Root loop ${rootHierarchy.loop.id}: ${formula}`);
         }
     }
     
@@ -509,13 +591,105 @@ function generateFinalFormula(loops, seriesComponents) {
     if (formulaParts.length === 1) {
         finalFormula = formulaParts[0];
     } else {
-        // Wrap in parentheses and join with &&
         finalFormula = formulaParts.join(' && ');
     }
     
     console.log(`\n  ✅ FINAL FORMULA: ${finalFormula}`);
     
     return finalFormula;
+}
+
+/**
+ * Recursively generate formula for a loop, including any nested loops
+ * Nested loops are treated as part of the parent's top or bottom path
+ */
+function generateLoopFormulaRecursive(loopHierarchy, allHierarchy) {
+    const loop = loopHierarchy.loop;
+    const children = loopHierarchy.children;
+    
+    console.log(`\n    🔄 Generating formula for ${loop.id} (${children.length} children)`);
+    
+    // Get the basic nodes in this loop (excluding nested loops' contacts)
+    const topPathContacts = [];
+    const bottomPathContacts = [];
+    
+    // Collect X ranges of child loops to exclude their contacts
+    const childRanges = children.map(child => {
+        const childLeftX = child.topLeft.isLplus ? 0 : child.topLeft.x;
+        const childRightX = child.topRight.x;
+        return { left: childLeftX, right: childRightX, row: child.branchRow };
+    });
+    
+    const leftX = loop.topLeft.isLplus ? 0 : loop.topLeft.x;
+    const rightX = loop.topRight.x;
+    
+    // Scan top path - exclude contacts that are inside child loops
+    for (const contact of loop.nodes.topPath) {
+        const isInChild = childRanges.some(range => 
+            contact.x >= range.left && 
+            contact.x <= range.right && 
+            loop.mainRow === loop.mainRow // Same row as current loop's top
+        );
+        
+        if (!isInChild) {
+            topPathContacts.push(contact.label);
+        }
+    }
+    
+    // Scan bottom path
+    for (const contact of loop.nodes.bottomPath) {
+        bottomPathContacts.push(contact.label);
+    }
+    
+    // Process children - add their formulas to the appropriate path
+    for (const child of children) {
+        const childHierarchy = allHierarchy.find(h => h.loop === child);
+        const childFormula = generateLoopFormulaRecursive(childHierarchy, allHierarchy);
+        
+        // Determine if child is on top path or bottom path
+        // Child is on top path if its branch row is between parent's top and bottom
+        // and it shares the same top row as parent
+        if (child.mainRow === loop.mainRow) {
+            // Child loop is on the top path
+            topPathContacts.push(childFormula);
+            console.log(`      Child ${child.id} added to TOP path: ${childFormula}`);
+        } else {
+            // Child loop is on the bottom path (or separate branch)
+            bottomPathContacts.push(childFormula);
+            console.log(`      Child ${child.id} added to BOTTOM path: ${childFormula}`);
+        }
+    }
+    
+    // Build formula
+    let topExpr = '';
+    if (topPathContacts.length === 1) {
+        topExpr = topPathContacts[0];
+    } else if (topPathContacts.length > 1) {
+        // Multiple items in top path - need to check if they should be AND or OR
+        // If they contain formulas (nested loops), wrap each in parens
+        const wrappedContacts = topPathContacts.map(c => 
+            c.includes('||') || c.includes('&&') ? `(${c})` : c
+        );
+        topExpr = wrappedContacts.join(' || ');
+    }
+    
+    let bottomExpr = '';
+    if (bottomPathContacts.length === 1) {
+        bottomExpr = bottomPathContacts[0];
+    } else if (bottomPathContacts.length > 1) {
+        bottomExpr = bottomPathContacts.join(' && ');
+    }
+    
+    // Combine paths with OR
+    if (topExpr && bottomExpr) {
+        return `(${topExpr} || ${bottomExpr})`;
+    } else if (topExpr) {
+        return topPathContacts.length > 1 ? `(${topExpr})` : topExpr;
+    } else if (bottomExpr) {
+        return bottomExpr;
+    } else {
+        return 'true';
+    }
 }
 
 // Export
