@@ -540,14 +540,24 @@ function drawComponent(component) {
         y: pos.y + CONFIG.grid.cellSize / 2
     };
     
-    // Determine color based on state
-    const color = component.state ? typeInfo.activeColor : typeInfo.color;
+    // Determine color based on current flow (for wires/branches) or state (for contacts/outputs)
+    let color;
+    if (typeInfo.isWire || typeInfo.isBranch || typeInfo.isCorner) {
+        // Wires and branches glow when they have current flow
+        color = component.hasCurrentFlow ? typeInfo.activeColor : typeInfo.color;
+    } else {
+        // Contacts and outputs use their state
+        color = component.state ? typeInfo.activeColor : typeInfo.color;
+    }
     
     // Highlight if selected
     if (state.ui.selectedComponent === component) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.fillRect(pos.x, pos.y, CONFIG.grid.cellSize, CONFIG.grid.cellSize);
     }
+    
+    // No shadow/glow effects - just use color changes
+    ctx.shadowBlur = 0;
     
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
@@ -872,13 +882,18 @@ window.toggleInput = function(inputId) {
         }
     });
     
-    updateUI();
-    renderGrid();
-    
-    // If simulation is running, trigger evaluation
+    // If simulation is running, trigger evaluation immediately on change
     if (state.ui.isSimulationRunning) {
-        console.log('   🔄 Triggering logic evaluation...');
+        console.log('   🔄 Triggering logic evaluation (on-change)...');
+        traceCurrentFlow(); // Re-trace current flow
         evaluateLogic();
+        updateOutputs();
+        renderGrid(); // Re-render to show updated current flow
+        updateUI();
+    } else {
+        // Not running - just update UI and render
+        updateUI();
+        renderGrid();
     }
 };
 
@@ -891,6 +906,29 @@ window.editComponentPin = function(componentId) {
 };
 
 // ===== Simulation =====
+/**
+ * Sync all contact component states with their linked input states
+ * This ensures contacts reflect the current input toggle states
+ */
+function syncContactStates() {
+    console.log('🔄 Syncing contact states with inputs...');
+    
+    state.diagram.inputs.forEach(input => {
+        input.componentIds.forEach(compId => {
+            const component = state.diagram.components.find(c => c.id === compId);
+            if (component) {
+                if (component.type === 'NO_CONTACT') {
+                    component.state = input.state;
+                    console.log(`  NO contact ${compId}: ${component.state}`);
+                } else if (component.type === 'NC_CONTACT') {
+                    component.state = !input.state; // NC is inverted
+                    console.log(`  NC contact ${compId}: ${component.state} (inverted from input ${input.state})`);
+                }
+            }
+        });
+    });
+}
+
 function startSimulation() {
     state.ui.isSimulationRunning = true;
     
@@ -904,29 +942,37 @@ function startSimulation() {
     
     // Log initial state
     console.log('%c🚀 SIMULATION STARTED', 'color: #4CAF50; font-weight: bold; font-size: 16px;');
+    console.log('Simulation mode: ON-CHANGE (evaluates only when inputs change)');
     console.log('');
     
-    // Run first scan immediately to show initial state
-    scanCycle();
+    // Sync all contact states with their input states before starting
+    syncContactStates();
     
-    // Start scan cycle
-    state.simulation.intervalId = setInterval(() => {
-        scanCycle();
-    }, CONFIG.simulation.scanCycleMs);
+    // Trace initial current flow
+    traceCurrentFlow();
+    
+    // Run first evaluation immediately to show initial state
+    evaluateLogic();
+    updateOutputs();
+    renderGrid();
+    updateUI();
 }
 
 function stopSimulation() {
     state.ui.isSimulationRunning = false;
     
-    if (state.simulation.intervalId) {
-        clearInterval(state.simulation.intervalId);
-        state.simulation.intervalId = null;
-    }
+    // Clear all current flow
+    state.diagram.components.forEach(comp => {
+        comp.hasCurrentFlow = false;
+    });
     
     elements.runBtn.disabled = false;
     elements.stopBtn.disabled = true;
     elements.statusDot.className = 'status-dot status-stopped';
     elements.statusText.textContent = 'Stopped';
+    
+    // Re-render to remove glow
+    renderGrid();
     
     console.log('');
     console.log('%c⏹ SIMULATION STOPPED', 'color: #F44336; font-weight: bold; font-size: 16px;');
@@ -938,7 +984,11 @@ function stepSimulation() {
     console.log('');
     // Force log on step (user explicitly requested it)
     state.simulation.lastLoggedState = null;
-    scanCycle();
+    traceCurrentFlow();
+    evaluateLogic();
+    updateOutputs();
+    renderGrid();
+    updateUI();
 }
 
 function scanCycle() {
@@ -955,6 +1005,196 @@ function scanCycle() {
     // Phase 4: Render
     renderGrid();
     updateUI();
+}
+
+/**
+ * Trace current flow through the circuit
+ * Makes wires glow when current is flowing through them
+ */
+function traceCurrentFlow() {
+    console.log('⚡ Tracing current flow...');
+    
+    // Debug: Show all contact states
+    const contacts = state.diagram.components.filter(c => 
+        c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT'
+    );
+    console.log('  Contact states:');
+    contacts.forEach(c => {
+        const input = state.diagram.inputs.find(i => i.componentIds.includes(c.id));
+        const inputState = input ? input.state : 'N/A';
+        console.log(`    ${c.type} at (${c.position.x}, ${c.position.y}): input=${inputState}, component.state=${c.state}, conducts=${c.state ? 'YES' : 'NO'}`);
+    });
+    
+    // Step 1: Reset all components - no current by default
+    state.diagram.components.forEach(comp => {
+        comp.hasCurrentFlow = false;
+    });
+    
+    // Step 2: Start from L+ (leftmost column, x=0 or x=1)
+    // Find all components at x=0 or x=1 (directly connected to L+)
+    const lPlusComponents = state.diagram.components.filter(c => c.position.x <= 1);
+    
+    console.log(`  Starting from ${lPlusComponents.length} component(s) near L+`);
+    
+    // Step 3: Trace from each L+ component
+    lPlusComponents.forEach(startComp => {
+        traceFromComponent(startComp, 'right');
+    });
+    
+    // Debug: Show which components have current
+    const energized = state.diagram.components.filter(c => c.hasCurrentFlow);
+    console.log(`  ✅ ${energized.length} component(s) have current flow`);
+}
+
+/**
+ * Recursively trace current flow from a component
+ * @param {Object} component - Starting component
+ * @param {String} direction - Direction to trace: 'right', 'down', 'up', 'left'
+ */
+function traceFromComponent(component, direction) {
+    if (!component) return;
+    
+    // Mark this component as having current
+    component.hasCurrentFlow = true;
+    
+    const x = component.position.x;
+    const y = component.position.y;
+    const type = component.type;
+    
+    // If we hit a contact, check if current can pass through
+    if (type === 'NO_CONTACT') {
+        // NO Contact: component.state = true means input is ON, contact conducts
+        if (!component.state) {
+            // Contact is open - stop tracing
+            return;
+        }
+        // Contact is closed - continue tracing
+        traceInDirection(x, y, 'right');
+        return;
+    }
+    
+    if (type === 'NC_CONTACT') {
+        // NC Contact: component.state is INVERTED (state=true means input OFF, contact conducts)
+        if (!component.state) {
+            // Contact is open - stop tracing
+            return;
+        }
+        // Contact is closed - continue tracing
+        traceInDirection(x, y, 'right');
+        return;
+    }
+    
+    // If we hit an output coil, mark it and continue
+    if (type === 'OUTPUT_COIL') {
+        // Current continues through coil to N
+        traceInDirection(x, y, 'right');
+        return;
+    }
+    
+    // For wires and branches, continue tracing in appropriate directions
+    if (type === 'HORIZONTAL_WIRE') {
+        // Continue horizontally
+        if (direction === 'right' || direction === 'left') {
+            traceInDirection(x, y, direction);
+        }
+        return;
+    }
+    
+    if (type === 'VERTICAL_WIRE') {
+        // Continue vertically
+        if (direction === 'down' || direction === 'up') {
+            traceInDirection(x, y, direction);
+        }
+        return;
+    }
+    
+    if (type === 'BRANCH_POINT') {
+        // Branch splits current - trace right (main path) and down (branch path)
+        traceInDirection(x, y, 'right'); // Main horizontal path
+        traceInDirection(x, y, 'down');  // Branch down
+        return;
+    }
+    
+    if (type === 'CORNER_DOWN_RIGHT') {
+        // └ corner (L1): vertical from top, horizontal to right
+        // Current coming down -> turns right
+        // Current coming from left -> goes down (not typical, but handle it)
+        if (direction === 'down') {
+            traceInDirection(x, y, 'right');
+        } else if (direction === 'left') {
+            traceInDirection(x, y, 'down');
+        }
+        return;
+    }
+    
+    if (type === 'CORNER_DOWN_LEFT') {
+        // ┘ corner (L2): horizontal from right, vertical up
+        // Current coming right -> turns up
+        // Current coming down -> goes left
+        if (direction === 'right') {
+            traceInDirection(x, y, 'up');
+        } else if (direction === 'down') {
+            traceInDirection(x, y, 'left');
+        }
+        return;
+    }
+    
+    if (type === 'CORNER_UP_RIGHT') {
+        // ┌ corner: vertical down, horizontal right
+        // Current coming up -> turns right
+        // Current coming left -> goes up
+        if (direction === 'up') {
+            traceInDirection(x, y, 'right');
+        } else if (direction === 'left') {
+            traceInDirection(x, y, 'up');
+        }
+        return;
+    }
+    
+    if (type === 'CORNER_UP_LEFT') {
+        // ┐ corner: horizontal from right, vertical down
+        // Current coming right -> turns down
+        // Current coming up -> goes left
+        if (direction === 'right') {
+            traceInDirection(x, y, 'down');
+        } else if (direction === 'up') {
+            traceInDirection(x, y, 'left');
+        }
+        return;
+    }
+}
+
+/**
+ * Find next component in a direction and trace from it
+ */
+function traceInDirection(x, y, direction) {
+    let nextX = x;
+    let nextY = y;
+    
+    switch (direction) {
+        case 'right':
+            nextX = x + 1;
+            break;
+        case 'left':
+            nextX = x - 1;
+            break;
+        case 'down':
+            nextY = y + 1;
+            break;
+        case 'up':
+            nextY = y - 1;
+            break;
+    }
+    
+    // Find component at next position
+    const nextComp = state.diagram.components.find(c =>
+        c.position.x === nextX && c.position.y === nextY
+    );
+    
+    if (nextComp && !nextComp.hasCurrentFlow) {
+        // Only trace if we haven't been here before (prevent infinite loops)
+        traceFromComponent(nextComp, direction);
+    }
 }
 
 function evaluateLogic() {
