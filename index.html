@@ -26,57 +26,37 @@
                 <h2>Components</h2>
                 
                 <div class="component-category">
-                    <h3>Input Contacts</h3>
-                    <div class="component-list">
-                        <button class="component-btn" data-type="NO_CONTACT" title="Normally Open Contact">
-                            <span class="component-symbol">┤ ├</span>
-                            <span class="component-label">NO Contact</span>
+                    <h3>Input/Output</h3>
+                    <div class="component-grid compact-grid">
+                        <button class="component-btn icon-only" data-type="NO_CONTACT" title="Normally Open Contact">
+                            <span class="component-icon">┤ ├</span>
                         </button>
-                        <button class="component-btn" data-type="NC_CONTACT" title="Normally Closed Contact">
-                            <span class="component-symbol">┤/├</span>
-                            <span class="component-label">NC Contact</span>
+                        <button class="component-btn icon-only" data-type="NC_CONTACT" title="Normally Closed Contact">
+                            <span class="component-icon">┤/├</span>
                         </button>
-                    </div>
-                </div>
-
-                <div class="component-category">
-                    <h3>Output Coils</h3>
-                    <div class="component-list">
-                        <button class="component-btn" data-type="OUTPUT_COIL" title="Output Coil">
-                            <span class="component-symbol">─( )─</span>
-                            <span class="component-label">Output</span>
+                        <button class="component-btn icon-only" data-type="OUTPUT_COIL" title="Output Coil">
+                            <span class="component-icon">( )</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="component-category">
                     <h3>Wiring</h3>
-                    <div class="component-list">
-                        <button class="component-btn" data-type="HORIZONTAL_WIRE" title="Horizontal Wire">
-                            <span class="component-symbol">─</span>
-                            <span class="component-label">H-Wire</span>
+                    <div class="component-grid compact-grid">
+                        <button class="component-btn icon-only" data-type="HORIZONTAL_WIRE" title="Horizontal Wire">
+                            <span class="component-icon">─</span>
                         </button>
-                        <button class="component-btn" data-type="VERTICAL_WIRE" title="Vertical Wire">
-                            <span class="component-symbol">│</span>
-                            <span class="component-label">V-Wire</span>
+                        <button class="component-btn icon-only" data-type="VERTICAL_WIRE" title="Vertical Wire">
+                            <span class="component-icon">│</span>
                         </button>
-                        <button class="component-btn" data-type="CORNER_DOWN_RIGHT" title="L1: Loop Start (└)">
-                            <span class="component-symbol">└</span>
-                            <span class="component-label">L1 (└)</span>
+                        <button class="component-btn icon-only" data-type="BRANCH_POINT" title="Branch Point">
+                            <span class="component-icon">┬</span>
                         </button>
-                        <button class="component-btn" data-type="CORNER_DOWN_LEFT" title="L2: Loop End (┘)">
-                            <span class="component-symbol">┘</span>
-                            <span class="component-label">L2 (┘)</span>
+                        <button class="component-btn icon-only" data-type="CORNER_DOWN_RIGHT" title="L1 Corner (└)">
+                            <span class="component-icon">└</span>
                         </button>
-                    </div>
-                </div>
-
-                <div class="component-category">
-                    <h3>Logic & Branches</h3>
-                    <div class="component-list">
-                        <button class="component-btn" data-type="BRANCH_POINT" title="Branch Point (OR Logic)">
-                            <span class="component-symbol">┬</span>
-                            <span class="component-label">Branch</span>
+                        <button class="component-btn icon-only" data-type="CORNER_DOWN_LEFT" title="L2 Corner (┘)">
+                            <span class="component-icon">┘</span>
                         </button>
                     </div>
                 </div>
@@ -89,6 +69,24 @@
                     <button id="selectTool" class="btn btn-secondary btn-block">
                         👆 Select Mode
                     </button>
+                </div>
+
+                <div class="pin-list-section">
+                    <h3>Pin Configuration</h3>
+                    <div class="pin-list-container">
+                        <div class="pin-category">
+                            <h4>Inputs</h4>
+                            <div id="inputPinList" class="pin-items"></div>
+                        </div>
+                        <div class="pin-category">
+                            <h4>Feedbacks</h4>
+                            <div id="feedbackPinList" class="pin-items"></div>
+                        </div>
+                        <div class="pin-category">
+                            <h4>Outputs</h4>
+                            <div id="outputPinList" class="pin-items"></div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
@@ -125,6 +123,14 @@
                     <button id="addInput" class="btn btn-secondary btn-small">+ Add Input</button>
                 </div>
 
+                <!-- Feedback Panel -->
+                <div class="io-panel">
+                    <h2>Feedbacks</h2>
+                    <div id="feedbackList" class="io-list">
+                        <p class="empty-message">No feedbacks available</p>
+                    </div>
+                </div>
+
                 <!-- Output Panel -->
                 <div class="io-panel">
                     <h2>Outputs</h2>
@@ -149,19 +155,17 @@
     <div id="pinModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Assign Pin</h2>
+            <h2 id="modalTitle">Assign Pin</h2>
             <form id="pinAssignmentForm">
                 <div class="form-group">
-                    <label for="pinNumber">Pin Number:</label>
-                    <input type="number" id="pinNumber" min="0" max="15" required>
+                    <label for="pinNumber">Pin:</label>
+                    <select id="pinNumber" required>
+                        <option value="">Select pin...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="pinLabel">Label:</label>
                     <input type="text" id="pinLabel" placeholder="e.g., Start Button" required>
-                </div>
-                <div class="form-group">
-                    <label for="pinDescription">Description:</label>
-                    <textarea id="pinDescription" placeholder="Optional description"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Assign</button>

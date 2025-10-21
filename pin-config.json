@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    { "id": 1, "label": "I1", "description": "Input 1" },
+    { "id": 2, "label": "I2", "description": "Input 2" },
+    { "id": 3, "label": "I3", "description": "Input 3" },
+    { "id": 4, "label": "I4", "description": "Input 4" }
+  ],
+  "outputs": [
+    { "id": 1, "label": "Q1", "description": "Output 1" },
+    { "id": 2, "label": "Q2", "description": "Output 2" }
+  ],
+  "feedbackOutputs": [
+    { "id": 1, "label": "Q1", "description": "Output 1 Feedback", "sourceOutput": 1 },
+    { "id": 2, "label": "Q2", "description": "Output 2 Feedback", "sourceOutput": 2 }
+  ]
+}
