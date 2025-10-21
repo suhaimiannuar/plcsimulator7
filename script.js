@@ -20,22 +20,22 @@ const COMPONENT_TYPES = {
     NO_CONTACT: {
         name: 'Normally Open Contact',
         symbol: '┤ ├',
-        color: '#2196F3',
-        activeColor: '#4CAF50',
+        color: '#2196F3',        // Blue when no current
+        activeColor: '#4CAF50',  // Green when current flows
         isInput: true
     },
     NC_CONTACT: {
         name: 'Normally Closed Contact',
         symbol: '┤/├',
-        color: '#2196F3',
-        activeColor: '#FF5722',
+        color: '#2196F3',        // Blue when no current
+        activeColor: '#4CAF50',  // Green when current flows (changed from orange)
         isInput: true
     },
     OUTPUT_COIL: {
         name: 'Output Coil',
         symbol: '─( )─',
-        color: '#FF5722',
-        activeColor: '#4CAF50',
+        color: '#2196F3',        // Blue when no current (changed from red)
+        activeColor: '#4CAF50',  // Green when current flows
         isOutput: true
     },
     HORIZONTAL_WIRE: {
@@ -104,7 +104,8 @@ const state = {
         grid: CONFIG.grid,
         components: [],
         inputs: [],
-        outputs: []
+        outputs: [],
+        feedbacks: []  // Track feedback states (QF1, QF2, etc.)
     },
     ui: {
         selectedComponentType: null,
@@ -116,7 +117,8 @@ const state = {
         intervalId: null,
         scanCount: 0,
         lastLoggedState: null  // Track last logged state to detect changes
-    }
+    },
+    pinConfig: null // Will store loaded pin configuration
 };
 
 // ===== DOM Elements =====
@@ -143,21 +145,30 @@ const elements = {
     cursorPosition: document.getElementById('cursorPosition'),
     selectedComponentDisplay: document.getElementById('selectedComponent'),
     inputList: document.getElementById('inputList'),
+    feedbackList: document.getElementById('feedbackList'),
     outputList: document.getElementById('outputList'),
     propertiesContent: document.getElementById('propertiesContent'),
+    
+    // Pin List
+    inputPinList: document.getElementById('inputPinList'),
+    feedbackPinList: document.getElementById('feedbackPinList'),
+    outputPinList: document.getElementById('outputPinList'),
     
     // Modal
     pinModal: document.getElementById('pinModal'),
     pinForm: document.getElementById('pinAssignmentForm'),
+    modalTitle: document.getElementById('modalTitle'),
     pinNumber: document.getElementById('pinNumber'),
     pinLabel: document.getElementById('pinLabel'),
-    pinDescription: document.getElementById('pinDescription'),
     cancelPinBtn: document.getElementById('cancelPin'),
     closeModal: document.querySelector('.close')
 };
 
 // ===== Initialization =====
-function init() {
+async function init() {
+    // Load pin configuration
+    await loadPinConfiguration();
+    
     // Setup canvas
     elements.ctx = elements.canvas.getContext('2d');
     resizeCanvas();
@@ -168,8 +179,154 @@ function init() {
     // Initial render
     renderGrid();
     updateUI();
+    updatePinList();
     
     console.log('PLC Ladder Diagram Simulator initialized');
+}
+
+/**
+ * Load pin configuration from JSON file
+ */
+async function loadPinConfiguration() {
+    try {
+        const response = await fetch('pin-config.json');
+        state.pinConfig = await response.json();
+        console.log('✅ Pin configuration loaded:', state.pinConfig);
+    } catch (error) {
+        console.error('❌ Failed to load pin configuration:', error);
+        // Fallback to default configuration
+        state.pinConfig = {
+            inputs: Array.from({length: 8}, (_, i) => ({
+                id: i + 1,
+                label: `I${i + 1}`,
+                description: `Input ${i + 1}`
+            })),
+            outputs: Array.from({length: 8}, (_, i) => ({
+                id: i + 1,
+                label: `Q${i + 1}`,
+                description: `Output ${i + 1}`
+            })),
+            feedbackOutputs: Array.from({length: 8}, (_, i) => ({
+                id: i + 1,
+                label: `Q${i + 1}`,
+                description: `Output ${i + 1} Feedback`,
+                sourceOutput: i + 1
+            }))
+        };
+    }
+}
+
+/**
+ * Update the pin list display to show all available pins and their assignments
+ */
+function updatePinList() {
+    if (!state.pinConfig) return;
+    
+    // Helper function to create pin item element
+    function createPinItem(pin, componentType) {
+        const item = document.createElement('div');
+        item.className = 'pin-item';
+        
+        // Create pin identifier based on type
+        let pinId;
+        if (componentType === 'input') {
+            pinId = `I${pin.id}`;
+        } else if (componentType === 'feedback') {
+            pinId = `QF${pin.id}`;
+        } else {
+            pinId = `Q${pin.id}`;
+        }
+        
+        // Find if this pin is assigned
+        let assignment = null;
+        let assignmentLabel = '';
+        
+        if (componentType === 'input') {
+            // Check I/O list for input assignments
+            assignment = state.diagram.inputs.find(input => input.pin === pinId);
+            if (assignment) {
+                assignmentLabel = assignment.label;
+            } else {
+                // Also check if any contact is using this input pin
+                const contactUsingPin = state.diagram.components.find(c => 
+                    (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') && c.pin === pinId
+                );
+                if (contactUsingPin) {
+                    assignment = contactUsingPin;
+                    assignmentLabel = contactUsingPin.label;
+                }
+            }
+        } else if (componentType === 'feedback') {
+            // Check if feedback exists and get its state
+            const feedback = state.diagram.feedbacks ? state.diagram.feedbacks.find(f => f.pin === pinId) : null;
+            
+            // Check if any contact is using this feedback pin
+            const contactUsingFeedback = state.diagram.components.find(c => 
+                (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') && c.pin === pinId
+            );
+            
+            if (contactUsingFeedback) {
+                assignment = contactUsingFeedback;
+                assignmentLabel = contactUsingFeedback.label || (feedback ? feedback.label : '');
+            } else if (feedback) {
+                // Feedback exists but no contact using it yet
+                assignment = feedback;
+                assignmentLabel = feedback.label;
+            }
+        } else if (componentType === 'output') {
+            // Check I/O list for output assignments
+            assignment = state.diagram.outputs.find(output => output.pin === pinId);
+            if (assignment) {
+                assignmentLabel = assignment.label;
+            }
+        }
+        
+        if (assignment) {
+            item.classList.add('assigned');
+        } else {
+            item.classList.add('available');
+        }
+        
+        // Pin ID
+        const pinIdSpan = document.createElement('span');
+        pinIdSpan.className = 'pin-id';
+        pinIdSpan.textContent = componentType === 'feedback' ? `QF${pin.id}` : pin.label;
+        
+        // Pin Label (user-assigned or empty)
+        const pinLabel = document.createElement('span');
+        pinLabel.className = 'pin-label';
+        if (assignmentLabel) {
+            pinLabel.textContent = assignmentLabel;
+        } else {
+            pinLabel.textContent = '—';
+            pinLabel.classList.add('empty');
+        }
+        
+        item.appendChild(pinIdSpan);
+        item.appendChild(pinLabel);
+        
+        return item;
+    }
+    
+    // Clear existing lists
+    elements.inputPinList.innerHTML = '';
+    elements.feedbackPinList.innerHTML = '';
+    elements.outputPinList.innerHTML = '';
+    
+    // Populate inputs
+    state.pinConfig.inputs.forEach(pin => {
+        elements.inputPinList.appendChild(createPinItem(pin, 'input'));
+    });
+    
+    // Populate feedbacks
+    state.pinConfig.outputs.forEach(pin => {
+        elements.feedbackPinList.appendChild(createPinItem(pin, 'feedback'));
+    });
+    
+    // Populate outputs
+    state.pinConfig.outputs.forEach(pin => {
+        elements.outputPinList.appendChild(createPinItem(pin, 'output'));
+    });
 }
 
 function resizeCanvas() {
@@ -302,8 +459,15 @@ function placeComponent(gridPos) {
     // Check if cell is occupied
     const existing = getComponentAt(gridPos.x, gridPos.y);
     if (existing) {
-        alert('Cell is already occupied!');
-        return;
+        // Replace existing component
+        const index = state.diagram.components.indexOf(existing);
+        if (index > -1) {
+            state.diagram.components.splice(index, 1);
+            
+            // Remove from inputs/outputs if applicable
+            state.diagram.inputs = state.diagram.inputs.filter(i => !i.componentIds.includes(existing.id));
+            state.diagram.outputs = state.diagram.outputs.filter(o => !o.componentIds.includes(existing.id));
+        }
     }
     
     // Create component
@@ -311,7 +475,7 @@ function placeComponent(gridPos) {
         id: generateId(),
         type: state.ui.selectedComponentType,
         position: { x: gridPos.x, y: gridPos.y },
-        pinAssignment: null,
+        pin: null,
         label: '',
         state: false,
         metadata: {}
@@ -344,6 +508,7 @@ function deleteComponent(gridPos) {
         
         renderGrid();
         updateUI();
+        updatePinList();
     }
 }
 
@@ -373,16 +538,77 @@ function generateId() {
 // ===== Pin Assignment Modal =====
 function openPinModal(component) {
     const typeInfo = COMPONENT_TYPES[component.type];
+    const pinNumberSelect = elements.pinNumber;
     
-    if (typeInfo.isInput) {
-        elements.pinNumber.max = CONFIG.pins.maxInputs - 1;
+    // Clear existing options
+    pinNumberSelect.innerHTML = '<option value="">Select pin...</option>';
+    
+    if (!state.pinConfig) return;
+    
+    let pinTypeName = '';
+    
+    // Auto-detect component type and populate appropriate pins
+    if (typeInfo.isInput || typeInfo.isContact) {
+        // For inputs and contacts, show both input pins and output pins (for feedback)
+        pinTypeName = typeInfo.isInput ? 'Input' : 'Contact';
+        
+        // Create optgroup for Input Pins
+        const inputGroup = document.createElement('optgroup');
+        inputGroup.label = 'Input Pins';
+        state.pinConfig.inputs.forEach(pin => {
+            const option = document.createElement('option');
+            option.value = `I${pin.id}`;
+            
+            // Check if this pin has been assigned and use the actual label
+            const assignedInput = state.diagram.inputs.find(i => i.pin === `I${pin.id}`);
+            const displayLabel = assignedInput && assignedInput.label ? assignedInput.label : pin.description;
+            
+            option.textContent = `I${pin.id} - ${displayLabel}`;
+            inputGroup.appendChild(option);
+        });
+        pinNumberSelect.appendChild(inputGroup);
+        
+        // Create optgroup for Output Pins (Feedback)
+        const feedbackGroup = document.createElement('optgroup');
+        feedbackGroup.label = 'Output Pins (Feedback)';
+        state.pinConfig.outputs.forEach(pin => {
+            const option = document.createElement('option');
+            option.value = `QF${pin.id}`;  // Use QF for feedback
+            
+            // Check if this feedback has been assigned and use the actual label
+            const assignedFeedback = state.diagram.feedbacks.find(f => f.pin === `QF${pin.id}`);
+            const displayLabel = assignedFeedback && assignedFeedback.label ? assignedFeedback.label : `${pin.description} (Feedback)`;
+            
+            option.textContent = `QF${pin.id} - ${displayLabel}`;
+            feedbackGroup.appendChild(option);
+        });
+        pinNumberSelect.appendChild(feedbackGroup);
+        
     } else if (typeInfo.isOutput) {
-        elements.pinNumber.max = CONFIG.pins.maxOutputs - 1;
+        // For outputs, only show output pins
+        pinTypeName = 'Output';
+        
+        state.pinConfig.outputs.forEach(pin => {
+            const option = document.createElement('option');
+            option.value = `Q${pin.id}`;
+            
+            // Check if this pin has been assigned and use the actual label
+            const assignedOutput = state.diagram.outputs.find(o => o.pin === `Q${pin.id}`);
+            const displayLabel = assignedOutput && assignedOutput.label ? assignedOutput.label : pin.description;
+            
+            option.textContent = `Q${pin.id} - ${displayLabel}`;
+            pinNumberSelect.appendChild(option);
+        });
     }
     
-    elements.pinNumber.value = '';
+    // Update modal title
+    elements.modalTitle.textContent = `Assign ${pinTypeName} Pin`;
+    
+    // Pre-fill existing values
+    if (component.pin !== null && component.pin !== undefined) {
+        elements.pinNumber.value = component.pin;
+    }
     elements.pinLabel.value = component.label || '';
-    elements.pinDescription.value = component.metadata.description || '';
     
     elements.pinModal.classList.add('show');
 }
@@ -397,43 +623,101 @@ function handlePinAssignment(e) {
     const component = state.ui.selectedComponent;
     if (!component) return;
     
-    const pinNumber = parseInt(elements.pinNumber.value);
+    const pinValue = elements.pinNumber.value;
     const label = elements.pinLabel.value;
-    const description = elements.pinDescription.value;
+    
+    if (!pinValue) {
+        alert('Please select a pin number');
+        return;
+    }
     
     const typeInfo = COMPONENT_TYPES[component.type];
+    const isFeedbackPin = pinValue.startsWith('QF');
     
-    // Check if pin is already assigned
-    const ioList = typeInfo.isInput ? state.diagram.inputs : state.diagram.outputs;
-    const existing = ioList.find(io => io.pinNumber === pinNumber);
-    
-    if (existing && !existing.componentIds.includes(component.id)) {
-        // Pin already exists, just add this component to it
-        existing.componentIds.push(component.id);
-    } else if (!existing) {
-        // Create new I/O
-        const io = {
-            id: generateId(),
-            pinNumber: pinNumber,
-            label: label,
-            type: 'DIGITAL',
-            state: false,
-            componentIds: [component.id]
-        };
+    // For inputs and outputs, manage the I/O list
+    // BUT: Don't create I/O entries for feedback pins (QF) - they're read-only
+    if ((typeInfo.isInput || typeInfo.isOutput) && !isFeedbackPin) {
+        const ioList = typeInfo.isInput ? state.diagram.inputs : state.diagram.outputs;
+        const existing = ioList.find(io => io.pin === pinValue);
         
-        if (typeInfo.isInput) {
-            state.diagram.inputs.push(io);
+        if (existing) {
+            // Pin already exists
+            if (!existing.componentIds.includes(component.id)) {
+                // Add this component to the existing pin
+                existing.componentIds.push(component.id);
+            }
+            // Always update the label
+            if (label) {
+                existing.label = label;
+                // Update label for all components using this pin
+                existing.componentIds.forEach(compId => {
+                    const comp = state.diagram.components.find(c => c.id === compId);
+                    if (comp) {
+                        comp.label = label;
+                    }
+                });
+            }
         } else {
-            state.diagram.outputs.push(io);
+            // Create new I/O
+            const io = {
+                id: generateId(),
+                pin: pinValue,
+                label: label || '',
+                type: 'DIGITAL',
+                state: false,
+                componentIds: [component.id]
+            };
+            
+            if (typeInfo.isInput) {
+                state.diagram.inputs.push(io);
+            } else {
+                state.diagram.outputs.push(io);
+                // Don't auto-create feedback - only create when a contact uses it
+            }
         }
     }
     
-    component.pinAssignment = pinNumber;
-    component.label = label;
-    component.metadata.description = description;
+    // Handle feedback pin assignment (QF1, QF2, etc.)
+    if (isFeedbackPin) {
+        // Update or create feedback entry with the given label
+        const existing = state.diagram.feedbacks.find(f => f.pin === pinValue);
+        if (existing) {
+            existing.label = label || existing.label;
+            // Update label for all feedback contacts using this pin
+            state.diagram.components.forEach(comp => {
+                if ((comp.type === 'NO_CONTACT' || comp.type === 'NC_CONTACT') && comp.pin === pinValue) {
+                    comp.label = label || comp.label;
+                }
+            });
+        } else {
+            // Create feedback entry if it doesn't exist
+            const sourceOutputPin = pinValue.replace('QF', 'Q'); // QF1 -> Q1
+            const feedback = {
+                id: generateId(),
+                pin: pinValue,
+                sourceOutputPin: sourceOutputPin,
+                state: false,
+                label: label || 'Feedback'
+            };
+            state.diagram.feedbacks.push(feedback);
+        }
+    }
+    
+    // Update component properties (always, including for feedback contacts)
+    component.pin = pinValue;
+    component.label = label || '';
     
     closeModal();
+    
+    // Refresh all UI elements
     updateUI();
+    updatePinList();
+    
+    // Update the properties panel if this component is still selected
+    if (state.ui.selectedComponent === component) {
+        displayProperties(component);
+    }
+    
     renderGrid();
 }
 
@@ -540,14 +824,34 @@ function drawComponent(component) {
         y: pos.y + CONFIG.grid.cellSize / 2
     };
     
-    // Determine color based on current flow (for wires/branches) or state (for contacts/outputs)
+    // Determine color based on component type
     let color;
-    if (typeInfo.isWire || typeInfo.isBranch || typeInfo.isCorner) {
-        // Wires and branches glow when they have current flow
+    
+    if (typeInfo.isInput) {
+        // Contacts: Blue when OFF, Green when ON (based on switch state)
+        // For NO: state=true means switch ON
+        // For NC: state=true means switch OFF (inverted), so check actual input state
+        
+        // Check if this is a feedback contact (QF pin)
+        const isFeedbackContact = component.pin && component.pin.startsWith('QF');
+        
+        if (isFeedbackContact) {
+            // Feedback contacts: Use component state directly (already synced by updateFeedbackStates)
+            color = component.state ? typeInfo.activeColor : typeInfo.color;
+        } else {
+            // Regular input contacts: Look up input state
+            const input = state.diagram.inputs.find(i => i.componentIds.includes(component.id));
+            const switchIsOn = input ? input.state : false;
+            color = switchIsOn ? typeInfo.activeColor : typeInfo.color;
+        }
+    } else if (typeInfo.isWire || typeInfo.isBranch || typeInfo.isCorner) {
+        // Wires: Blue when no current, Green when current flows
+        color = component.hasCurrentFlow ? typeInfo.activeColor : typeInfo.color;
+    } else if (typeInfo.isOutput) {
+        // Outputs: Blue when OFF, Green when ON (based on current flow)
         color = component.hasCurrentFlow ? typeInfo.activeColor : typeInfo.color;
     } else {
-        // Contacts and outputs use their state
-        color = component.state ? typeInfo.activeColor : typeInfo.color;
+        color = typeInfo.color;
     }
     
     // Highlight if selected
@@ -777,7 +1081,16 @@ function drawBranchPoint(ctx, center, color, component) {
 // ===== UI Updates =====
 function updateUI() {
     updateInputList();
+    updateFeedbackList();
     updateOutputList();
+    
+    // Update properties panel if a component is selected
+    if (state.ui.selectedComponent) {
+        const component = state.diagram.components.find(c => c.id === state.ui.selectedComponent);
+        if (component) {
+            displayProperties(component);
+        }
+    }
 }
 
 function updateInputList() {
@@ -790,13 +1103,33 @@ function updateInputList() {
         <div class="io-item">
             <div class="io-item-header">
                 <div class="io-item-label">
-                    <span class="pin-badge">I${input.pinNumber}</span>
+                    <span class="pin-badge">${input.pin}</span>
                     <span>${input.label}</span>
                 </div>
                 <div class="io-toggle ${input.state ? 'active' : ''}" 
                      onclick="toggleInput('${input.id}')"></div>
             </div>
             <div class="io-item-state">State: ${input.state ? 'ON' : 'OFF'}</div>
+        </div>
+    `).join('');
+}
+
+function updateFeedbackList() {
+    if (state.diagram.feedbacks.length === 0) {
+        elements.feedbackList.innerHTML = '<p class="empty-message">No feedbacks available</p>';
+        return;
+    }
+    
+    elements.feedbackList.innerHTML = state.diagram.feedbacks.map(feedback => `
+        <div class="io-item">
+            <div class="io-item-header">
+                <div class="io-item-label">
+                    <span class="pin-badge">${feedback.pin}</span>
+                    <span>${feedback.label}</span>
+                </div>
+            </div>
+            <div class="output-indicator ${feedback.state ? 'active' : ''}"></div>
+            <div class="io-item-state">State: ${feedback.state ? 'ON' : 'OFF'}</div>
         </div>
     `).join('');
 }
@@ -811,7 +1144,7 @@ function updateOutputList() {
         <div class="io-item">
             <div class="io-item-header">
                 <div class="io-item-label">
-                    <span class="pin-badge">Q${output.pinNumber}</span>
+                    <span class="pin-badge">${output.pin}</span>
                     <span>${output.label}</span>
                 </div>
             </div>
@@ -835,7 +1168,7 @@ function displayProperties(component) {
         </div>
         <div class="property-group">
             <div class="property-label">Pin Assignment</div>
-            <div class="property-value">${component.pinAssignment !== null ? component.pinAssignment : 'None'}</div>
+            <div class="property-value">${component.pin !== null ? component.pin : 'None'}</div>
         </div>
         <div class="property-group">
             <div class="property-label">Label</div>
@@ -866,7 +1199,7 @@ window.toggleInput = function(inputId) {
     
     // Toggle state
     input.state = !input.state;
-    console.log(`   Input ${input.id} (I${input.pinNumber}) state: ${input.state ? 'ON' : 'OFF'}`);
+    console.log(`   Input ${input.id} (${input.pin}) state: ${input.state ? 'ON' : 'OFF'}`);
     
     // Update linked components
     input.componentIds.forEach(compId => {
@@ -929,6 +1262,119 @@ function syncContactStates() {
     });
 }
 
+/**
+ * Create or update a feedback entry for an output
+ * Called when an output is created or updated
+ */
+function createOrUpdateFeedback(outputPin, outputLabel) {
+    const feedbackPin = outputPin.replace('Q', 'QF'); // Q1 -> QF1
+    const existing = state.diagram.feedbacks.find(f => f.pin === feedbackPin);
+    
+    if (existing) {
+        // Update existing feedback - preserve custom label if it was set differently
+        if (!existing.label || existing.label === `${existing.sourceOutputPin} (Feedback)`) {
+            // If it has default label, update with output's label
+            existing.label = outputLabel ? `${outputLabel} (Feedback)` : 'Feedback';
+        }
+        // Don't overwrite custom labels
+    } else {
+        // Create new feedback entry
+        const feedback = {
+            id: generateId(),
+            pin: feedbackPin,
+            sourceOutputPin: outputPin,
+            state: false,
+            label: outputLabel ? `${outputLabel} (Feedback)` : 'Feedback'
+        };
+        state.diagram.feedbacks.push(feedback);
+        console.log(`  ✨ Created feedback ${feedbackPin} for output ${outputPin}`);
+    }
+}
+
+/**
+ * Initialize feedback states (QF) for all outputs
+ * Only creates feedbacks that are actually used by contacts
+ */
+function initializeFeedbacks() {
+    console.log('🔄 Initializing feedback states...');
+    
+    // Keep existing feedbacks
+    const existingFeedbacks = [...state.diagram.feedbacks];
+    
+    // Find all feedback pins actually used by contacts in the diagram
+    const usedFeedbackPins = new Set();
+    state.diagram.components.forEach(comp => {
+        if ((comp.type === 'NO_CONTACT' || comp.type === 'NC_CONTACT') && 
+            comp.pin && comp.pin.startsWith('QF')) {
+            usedFeedbackPins.add(comp.pin);
+        }
+    });
+    
+    // For each used feedback pin, ensure it exists in feedbacks array
+    usedFeedbackPins.forEach(feedbackPin => {
+        const existing = state.diagram.feedbacks.find(f => f.pin === feedbackPin);
+        
+        if (existing) {
+            // Keep existing feedback with its custom label
+            console.log(`  ♻️  Keeping existing feedback ${existing.pin}: "${existing.label}"`);
+        } else {
+            // Create new feedback for this used pin
+            const sourceOutputPin = feedbackPin.replace('QF', 'Q'); // QF1 -> Q1
+            const output = state.diagram.outputs.find(o => o.pin === sourceOutputPin);
+            
+            const feedback = {
+                id: generateId(),
+                pin: feedbackPin,
+                sourceOutputPin: sourceOutputPin,
+                state: false,
+                label: output && output.label ? `${output.label} (Feedback)` : 'Feedback'
+            };
+            state.diagram.feedbacks.push(feedback);
+            console.log(`  ➕ Created feedback ${feedback.pin} for used contact`);
+        }
+    });
+    
+    console.log(`  Total feedbacks: ${state.diagram.feedbacks.length}`);
+}
+
+/**
+ * Update feedback states based on output states
+ * Called after evaluateLogic to sync QF with Q
+ */
+function updateFeedbackStates() {
+    console.log('  🔄 Updating feedback states...');
+    
+    state.diagram.feedbacks.forEach(feedback => {
+        const output = state.diagram.outputs.find(o => o.pin === feedback.sourceOutputPin);
+        if (output) {
+            const oldState = feedback.state;
+            feedback.state = output.state;
+            
+            console.log(`     ${feedback.pin}: ${oldState} -> ${feedback.state} (from ${output.pin})`);
+        }
+    });
+    
+    // Update contacts that use feedback pins
+    state.diagram.feedbacks.forEach(feedback => {
+        const feedbackContacts = state.diagram.components.filter(c => 
+            (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') && 
+            c.pin === feedback.pin
+        );
+        
+        console.log(`     Found ${feedbackContacts.length} contact(s) using ${feedback.pin}`);
+        
+        feedbackContacts.forEach(contact => {
+            const oldContactState = contact.state;
+            if (contact.type === 'NO_CONTACT') {
+                contact.state = feedback.state;
+            } else if (contact.type === 'NC_CONTACT') {
+                contact.state = !feedback.state; // NC is inverted
+            }
+            console.log(`       Contact ${contact.id} (${contact.type}): ${oldContactState} -> ${contact.state}`);
+        });
+    });
+}
+
 function startSimulation() {
     state.ui.isSimulationRunning = true;
     
@@ -939,6 +1385,9 @@ function startSimulation() {
     
     // Reset last logged state to force initial log
     state.simulation.lastLoggedState = null;
+    
+    // Initialize feedback states
+    initializeFeedbacks();
     
     // Log initial state
     console.log('%c🚀 SIMULATION STARTED', 'color: #4CAF50; font-weight: bold; font-size: 16px;');
@@ -1198,9 +1647,9 @@ function traceInDirection(x, y, direction) {
 }
 
 function evaluateLogic() {
-    console.log('🔧 Evaluating logic with V2 formulas...');
+    console.log('🔧 Evaluating logic based on current flow...');
     
-    // Get all outputs
+    // Get all output coils
     const outputs = state.diagram.components.filter(c => c.type === 'OUTPUT_COIL');
     
     if (outputs.length === 0) {
@@ -1208,31 +1657,26 @@ function evaluateLogic() {
         return;
     }
     
-    // For each output, use the generated formula from V2 analysis
+    // For each output coil, set its state based on whether it has current flow
+    // This is the correct PLC behavior: output is ON only if there's a complete electrical path from L+ to N
     outputs.forEach(output => {
-        if (output.pinAssignment === null) return;
-        
-        // Run V2 analysis to get formula
-        const result = detectBranchesV2(output, state.diagram.components, CONFIG.grid.rows);
-        
-        if (!result || result.length === 0 || !result[0] || result[0].length === 0) {
-            console.log(`  ⚠️  No formula for Q${output.pinAssignment}`);
+        if (output.pin === null) {
             output.state = false;
             return;
         }
         
-        const formula = result[0][0]; // Get the formula string
-        console.log(`  📝 Q${output.pinAssignment} formula: ${formula}`);
+        // Output state is determined by current flow (requires complete path from L+ through coil to N)
+        const hasCurrentFlow = output.hasCurrentFlow || false;
+        output.state = hasCurrentFlow;
         
-        // Evaluate the formula with current input states
-        const result_value = evaluateFormula(formula);
-        output.state = result_value;
-        
-        console.log(`  ✅ Q${output.pinAssignment} = ${result_value ? 'ON' : 'OFF'}`);
+        console.log(`  ${output.pin} (${output.label || 'unlabeled'}): ${output.state ? 'ON' : 'OFF'} (current flow: ${hasCurrentFlow})`);
     });
     
-    // Update output list in UI
+    // Update output objects from component states (sync state.diagram.outputs with coil components)
     updateOutputsFromComponents();
+    
+    // Update feedback states to match output states (AFTER output objects are synced)
+    updateFeedbackStates();
     
     // Check for state changes and log only if changed
     checkAndLogStateChanges();
@@ -1247,21 +1691,29 @@ function evaluateFormula(formula) {
     if (!formula || formula === 'true') return true;
     if (formula === 'false') return false;
     
-    // Build evaluation context with current input states
+    // Build evaluation context with current input states and feedback states
     const context = {};
     
     // Add all inputs to context
     state.diagram.inputs.forEach(input => {
-        const varName = `I${input.pinNumber}`;
+        const varName = input.pin;
         context[varName] = input.state;
     });
     
-    // Replace !I notation with NOT operator
-    // Convert: !I1 -> !context.I1
-    let jsFormula = formula.replace(/!I(\d+)/g, '!context.I$1');
+    // Add all feedbacks to context (QF1, QF2, etc.)
+    if (state.diagram.feedbacks) {
+        state.diagram.feedbacks.forEach(feedback => {
+            const varName = feedback.pin;
+            context[varName] = feedback.state;
+        });
+    }
     
-    // Convert: I1 -> context.I1 (but not already prefixed)
-    jsFormula = jsFormula.replace(/(?<!context\.)I(\d+)/g, 'context.I$1');
+    // Replace !I and !Q notation with NOT operator
+    // Convert: !I1 -> !context.I1, !QF1 -> !context.QF1
+    let jsFormula = formula.replace(/!(I|Q|QF)(\d+)/g, '!context.$1$2');
+    
+    // Convert: I1 -> context.I1, QF1 -> context.QF1 (but not already prefixed)
+    jsFormula = jsFormula.replace(/(?<!context\.)(I|Q|QF)(\d+)/g, 'context.$1$2');
     
     // Convert && and || to JavaScript operators (already correct)
     // Formula is now ready to evaluate
@@ -1285,7 +1737,7 @@ function updateOutputsFromComponents() {
     state.diagram.outputs.forEach(outputObj => {
         const component = state.diagram.components.find(c => 
             c.type === 'OUTPUT_COIL' && 
-            c.pinAssignment === outputObj.pinNumber
+            c.pin === outputObj.pin
         );
         if (component) {
             outputObj.state = component.state;
@@ -1381,7 +1833,7 @@ function logDiagramAnalysis() {
             // Find all contacts using this input pin to determine types
             const contactsUsingThisPin = state.diagram.components.filter(c => 
                 (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') && 
-                c.pinAssignment === input.pinNumber
+                c.pin === input.pin
             );
             
             const contactTypes = [];
@@ -1393,7 +1845,7 @@ function logDiagramAnalysis() {
             
             const typeDisplay = contactTypes.length > 0 ? ` [${contactTypes.join('/')}]` : '';
             
-            console.log(`**I${input.pinNumber}** (${input.label})${typeDisplay}: ${stateIcon} [${input.state}]`);
+            console.log(`**${input.pin}** (${input.label})${typeDisplay}: ${stateIcon} [${input.state}]`);
         });
     }
     console.log('');
@@ -1406,7 +1858,7 @@ function logDiagramAnalysis() {
     } else {
         state.diagram.outputs.forEach(output => {
             const stateIcon = output.state ? '🟢 ON' : '⚫ OFF';
-            console.log(`**Q${output.pinNumber}** (${output.label}): ${stateIcon} [${output.state}]`);
+            console.log(`**${output.pin}** (${output.label}): ${stateIcon} [${output.state}]`);
         });
     }
     console.log('');
@@ -1454,7 +1906,7 @@ function logDiagramAnalysis() {
             const typeInfo = COMPONENT_TYPES[comp.type];
             const pos = `(${comp.position.x}, ${comp.position.y})`;
             const label = comp.label || '-';
-            const pin = comp.pinAssignment !== null ? comp.pinAssignment : '-';
+            const pin = comp.pin !== null ? comp.pin : '-';
             const stateStr = comp.state ? '🟢 ON' : '⚫ OFF';
             console.log(`| ${pos} | ${comp.type} | ${label} | ${pin} | ${stateStr} |`);
         });
@@ -1479,8 +1931,19 @@ function generateLogicCode() {
     console.log('    // Input values');
     
     state.diagram.inputs.forEach(input => {
-        console.log(`    const I${input.pinNumber} = ${input.state}; // ${input.label}`);
+        console.log(`    const ${input.pin} = ${input.state}; // ${input.label}`);
     });
+    console.log('');
+    
+    // Declare feedback variables
+    console.log('    // Feedback values (from previous cycle)');
+    if (state.diagram.feedbacks && state.diagram.feedbacks.length > 0) {
+        state.diagram.feedbacks.forEach(feedback => {
+            console.log(`    let ${feedback.pin} = ${feedback.state}; // ${feedback.label}`);
+        });
+    } else {
+        console.log('    // (No feedbacks initialized)');
+    }
     console.log('');
     
     // Analyze the diagram to detect branches and paths
@@ -1495,16 +1958,16 @@ function generateLogicCode() {
         if (outputs.length === 0) continue;
         
         outputs.forEach(output => {
-            if (output.pinAssignment === null) return;
+            if (output.pin === null) return;
             
             // Use V2 algorithm (Loop Detection)
             console.log('🔄 Using Analysis V2 (Loop Detection)');
             const branches = detectBranchesV2(output, state.diagram.components, CONFIG.grid.rows);
             
-            if (!outputRowsMap.has(output.pinAssignment)) {
-                outputRowsMap.set(output.pinAssignment, []);
+            if (!outputRowsMap.has(output.pin)) {
+                outputRowsMap.set(output.pin, []);
             }
-            outputRowsMap.get(output.pinAssignment).push({
+            outputRowsMap.get(output.pin).push({
                 row: row,
                 branches: branches,
                 label: output.label || 'Output'
@@ -1514,7 +1977,7 @@ function generateLogicCode() {
     
     // Generate code for each output
     outputRowsMap.forEach((pathsData, outputPin) => {
-        console.log(`    // Output Q${outputPin}`);
+        console.log(`    // Output ${outputPin}`);
         
         // Combine all paths with OR logic
         const allConditions = [];
@@ -1550,10 +2013,15 @@ function generateLogicCode() {
             finalCondition = allConditions.join(' || ');
         }
         
+        // Generate the feedback pin name (Q1 -> QF1, Q2 -> QF2, etc.)
+        const feedbackPin = outputPin.replace('Q', 'QF');
+        
         console.log(`    if (${finalCondition}) {`);
-        console.log(`        Q${outputPin} = true;`);
+        console.log(`        ${outputPin} = true;`);
+        console.log(`        ${feedbackPin} = true;  // Feedback follows output`);
         console.log(`    } else {`);
-        console.log(`        Q${outputPin} = false;`);
+        console.log(`        ${outputPin} = false;`);
+        console.log(`        ${feedbackPin} = false;`);
         console.log(`    }`);
         console.log('');
     });
@@ -1561,8 +2029,17 @@ function generateLogicCode() {
     console.log('    // Output results');
     state.diagram.outputs.forEach(output => {
         const stateStr = output.state ? 'ON' : 'OFF';
-        console.log(`    console.log("Q${output.pinNumber} (${output.label}): " + Q${output.pinNumber} + " [${stateStr}]");`);
+        console.log(`    console.log("${output.pin} (${output.label}): " + ${output.pin} + " [${stateStr}]");`);
     });
+    
+    console.log('');
+    console.log('    // Feedback results');
+    if (state.diagram.feedbacks && state.diagram.feedbacks.length > 0) {
+        state.diagram.feedbacks.forEach(feedback => {
+            const stateStr = feedback.state ? 'ON' : 'OFF';
+            console.log(`    console.log("${feedback.pin} (${feedback.label}): " + ${feedback.pin} + " [${stateStr}]");`);
+        });
+    }
     
     console.log('}');
     console.log('```');
@@ -1586,23 +2063,20 @@ function generateLogicCode() {
             let result = true;
             
             contacts.forEach(contact => {
-                if (contact.pinAssignment !== null) {
+                if (contact.pin !== null) {
                     // Determine if this is a real input or feedback from output
-                    const isInputPin = state.diagram.inputs.find(inp => inp.pinNumber === contact.pinAssignment);
-                    const isOutputFeedback = state.diagram.outputs.find(out => out.pinNumber === contact.pinAssignment);
+                    const isInputPin = state.diagram.inputs.find(inp => inp.pin === contact.pin);
+                    const isOutputFeedback = state.diagram.outputs.find(out => out.pin === contact.pin);
                     
                     let sourceType = '';
-                    let pinLabel = '';
+                    let pinLabel = contact.pin;
                     
                     if (isInputPin) {
                         sourceType = 'Input';
-                        pinLabel = `I${contact.pinAssignment}`;
                     } else if (isOutputFeedback) {
                         sourceType = 'Output Feedback';
-                        pinLabel = `Q${contact.pinAssignment}`;
                     } else {
                         sourceType = 'Unassigned';
-                        pinLabel = `Pin ${contact.pinAssignment}`;
                     }
                     
                     let inputValue = contact.state;
@@ -1634,8 +2108,8 @@ function generateLogicCode() {
                 console.log(`**Result:** ${result ? '✅ ROW ENERGIZED' : '❌ ROW NOT ENERGIZED'}`);
                 
                 outputs.forEach(output => {
-                    if (output.pinAssignment !== null) {
-                        console.log(`**→ Q${output.pinAssignment}** (${output.label || 'Output'}): ${result ? '🟢 ON' : '⚫ OFF'}`);
+                    if (output.pin !== null) {
+                        console.log(`**→ ${output.pin}** (${output.label || 'Output'}): ${result ? '🟢 ON' : '⚫ OFF'}`);
                     }
                 });
                 console.log('');
@@ -1709,6 +2183,7 @@ function loadDiagram() {
                 stopSimulation();
                 renderGrid();
                 updateUI();
+                updatePinList();
                 console.log('Diagram loaded');
             } catch (error) {
                 alert('Error loading diagram: ' + error.message);
@@ -1726,10 +2201,12 @@ function clearDiagram() {
         state.diagram.components = [];
         state.diagram.inputs = [];
         state.diagram.outputs = [];
+        state.diagram.feedbacks = [];
         
         stopSimulation();
         renderGrid();
         updateUI();
+        updatePinList();
     }
 }
 

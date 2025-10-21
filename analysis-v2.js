@@ -66,25 +66,25 @@ function listAllNodes(components) {
     // Find all input contacts
     const inputs = components.filter(c => 
         (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') && 
-        c.pinAssignment !== null
+        c.pin !== null
     );
     
     // Find all output coils
     const outputs = components.filter(c => 
         c.type === 'OUTPUT_COIL' && 
-        c.pinAssignment !== null
+        c.pin !== null
     );
     
     console.log(`\n  📥 INPUTS: ${inputs.length} contact(s) found`);
     inputs.forEach(input => {
         const type = input.type === 'NO_CONTACT' ? 'NO' : 'NC';
-        const label = input.type === 'NO_CONTACT' ? `I${input.pinAssignment}` : `!I${input.pinAssignment}`;
+        const label = input.type === 'NO_CONTACT' ? `${input.pin}` : `!${input.pin}`;
         console.log(`     • ${label} [${type}] at (${input.position.x}, ${input.position.y}) - "${input.label || 'Unlabeled'}"`);
     });
     
     console.log(`\n  📤 OUTPUTS: ${outputs.length} coil(s) found`);
     outputs.forEach(output => {
-        console.log(`     • Q${output.pinAssignment} at (${output.position.x}, ${output.position.y}) - "${output.label || 'Unlabeled'}"`);
+        console.log(`     • ${output.pin} at (${output.position.x}, ${output.position.y}) - "${output.label || 'Unlabeled'}"`);
     });
     
     console.log('');
@@ -336,9 +336,9 @@ function findNodesInLoop(loop, components) {
             (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT')
         );
         
-        if (comp && comp.pinAssignment !== null) {
-            const label = comp.type === 'NO_CONTACT' ? `I${comp.pinAssignment}` : `!I${comp.pinAssignment}`;
-            topPath.push({ x, type: comp.type, label, pin: comp.pinAssignment });
+        if (comp && comp.pin !== null) {
+            const label = comp.type === 'NO_CONTACT' ? `${comp.pin}` : `!${comp.pin}`;
+            topPath.push({ x, type: comp.type, label, pin: comp.pin });
         }
     }
     
@@ -350,9 +350,9 @@ function findNodesInLoop(loop, components) {
             (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT')
         );
         
-        if (comp && comp.pinAssignment !== null) {
-            const label = comp.type === 'NO_CONTACT' ? `I${comp.pinAssignment}` : `!I${comp.pinAssignment}`;
-            bottomPath.push({ x, type: comp.type, label, pin: comp.pinAssignment });
+        if (comp && comp.pin !== null) {
+            const label = comp.type === 'NO_CONTACT' ? `${comp.pin}` : `!${comp.pin}`;
+            bottomPath.push({ x, type: comp.type, label, pin: comp.pin });
         }
     }
     
@@ -490,7 +490,7 @@ function findSeriesComponents(loops, mainRow, components) {
     const allMainRowContacts = components.filter(c =>
         c.position.y === mainRow &&
         (c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT') &&
-        c.pinAssignment !== null
+        c.pin !== null
     );
     
     console.log(`  Total contacts on main row (Y=${mainRow}): ${allMainRowContacts.length}`);
@@ -529,14 +529,14 @@ function findSeriesComponents(loops, mainRow, components) {
     }
     
     const seriesLabels = seriesContacts.map(c => {
-        const label = c.type === 'NO_CONTACT' ? `I${c.pinAssignment}` : `!I${c.pinAssignment}`;
+        const label = c.type === 'NO_CONTACT' ? `${c.pin}` : `!${c.pin}`;
         const type = c.type === 'NO_CONTACT' ? 'NO' : 'NC';
         console.log(`     • ${label} [${type}] at X=${c.position.x} - "${c.label || 'Unlabeled'}"`);
         return {
             label,
             type: c.type,
             x: c.position.x,
-            pin: c.pinAssignment,
+            pin: c.pin,
             userLabel: c.label
         };
     });
