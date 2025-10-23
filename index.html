@@ -270,8 +270,36 @@
         </div>
     </div>
 
+    <!-- Analysis Library -->
     <script src="analysis-v2.js"></script>
-    <script src="script.js"></script>
+    
+    <!-- PLC Simulator Modules (Load order is important!) -->
+    <!-- 1. Configuration & Constants -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. State Management -->
+    <script src="js/state.js"></script>
+    
+    <!-- 3. DOM References -->
+    <script src="js/dom.js"></script>
+    
+    <!-- 4. Utility Functions -->
+    <script src="js/canvas.js"></script>
+    <script src="js/keyboard.js"></script>
+    
+    <!-- 5. Core Features -->
+    <script src="js/components.js"></script>
+    <script src="js/modals.js"></script>
+    <script src="js/rendering.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/simulation.js"></script>
+    <script src="js/diagram.js"></script>
+    
+    <!-- 6. Initialization -->
+    <script src="js/init.js"></script>
+    
+    <!-- 7. Entry Point -->
+    <script src="js/main.js"></script>
 </body>
 </html>
 
