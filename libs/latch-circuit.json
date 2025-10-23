@@ -4,131 +4,368 @@
     "description": "Start/stop circuit with feedback latching",
     "created": "2025-10-22T00:00:00.000Z"
   },
+  "grid": {
+    "rows": 15,
+    "columns": 18,
+    "cellSize": 50,
+    "railWidth": 30
+  },
   "components": [
     {
-      "id": "comp_1",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 1, "y": 2},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_2",
-      "type": "BRANCH_POINT",
-      "position": {"x": 1, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_3",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 1, "y": 4},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_4",
+      "id": "comp_1761232061099_4w3b40t35",
       "type": "NO_CONTACT",
-      "position": {"x": 3, "y": 2},
+      "position": {
+        "x": 2,
+        "y": 2
+      },
       "pin": "I1",
-      "label": "START",
-      "state": false
+      "label": "ON",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
     },
     {
-      "id": "comp_5",
+      "id": "comp_1761232065728_8plrmmto6",
       "type": "NO_CONTACT",
-      "position": {"x": 3, "y": 4},
+      "position": {
+        "x": 2,
+        "y": 5
+      },
       "pin": "QF1",
-      "label": "MOTOR FB",
-      "state": false
+      "label": "FB MOTOR",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
     },
     {
-      "id": "comp_6",
-      "type": "CORNER_DOWN_RIGHT",
-      "position": {"x": 5, "y": 2},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_7",
-      "type": "CORNER_DOWN_LEFT",
-      "position": {"x": 5, "y": 4},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_8",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 5, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_9",
+      "id": "comp_1761232071595_ath39asq6",
       "type": "NC_CONTACT",
-      "position": {"x": 7, "y": 3},
+      "position": {
+        "x": 6,
+        "y": 2
+      },
       "pin": "I2",
-      "label": "STOP",
-      "state": true
+      "label": "BREAKER",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
     },
     {
-      "id": "comp_10",
-      "type": "HORIZONTAL_WIRE",
-      "position": {"x": 9, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_11",
+      "id": "comp_1761232077845_91mksuzvp",
       "type": "OUTPUT_COIL",
-      "position": {"x": 12, "y": 3},
+      "position": {
+        "x": 12,
+        "y": 2
+      },
       "pin": "Q1",
       "label": "MOTOR",
-      "state": false
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232083427_bd1qoyukl",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232083999_7iux8l77m",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 1,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232084724_p01qlbgzo",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 0,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232085065_fk56yn5bp",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 1,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232086207_d614zimu0",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 4,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232086515_cylzboqhk",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 5,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232087232_q1803wwg8",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 7,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232087682_lf1pcy4hw",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 8,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232088049_639uq5ot7",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 9,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232088607_9mwnoe0cz",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 10,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232088982_d1icjadge",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 11,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232089690_2swzpzbdm",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 13,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232090148_uhiml9pw2",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 14,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232090473_u94g83dra",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 16,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232091119_o2dkqiurf",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 17,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232091695_udfv8x5ch",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 15,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232093306_211bg6aff",
+      "type": "BRANCH_POINT",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232095003_zvu2qqp6o",
+      "type": "VERTICAL_WIRE",
+      "position": {
+        "x": 3,
+        "y": 3
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232095369_cw5rly54d",
+      "type": "VERTICAL_WIRE",
+      "position": {
+        "x": 3,
+        "y": 4
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761232096585_htmt2bjdk",
+      "type": "CORNER_DOWN_LEFT",
+      "position": {
+        "x": 3,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "hasCurrentFlow": false
     }
   ],
   "inputs": [
     {
-      "id": "input_1",
+      "id": "comp_1761232064450_08guh5l58",
       "pin": "I1",
-      "label": "START",
+      "label": "ON",
       "type": "DIGITAL",
       "state": false,
-      "componentIds": ["comp_4"]
+      "componentIds": [
+        "comp_1761232061099_4w3b40t35"
+      ]
     },
     {
-      "id": "input_2",
+      "id": "comp_1761232075426_2e6s64pmx",
       "pin": "I2",
-      "label": "STOP",
+      "label": "BREAKER",
       "type": "DIGITAL",
       "state": false,
-      "componentIds": ["comp_9"]
+      "componentIds": [
+        "comp_1761232071595_ath39asq6"
+      ]
     }
   ],
   "outputs": [
     {
-      "id": "output_1",
+      "id": "comp_1761232081640_xzixzlh49",
       "pin": "Q1",
       "label": "MOTOR",
       "type": "DIGITAL",
       "state": false,
-      "componentIds": ["comp_11"]
+      "componentIds": [
+        "comp_1761232077845_91mksuzvp"
+      ]
     }
   ],
   "feedbacks": [
     {
-      "id": "feedback_1",
+      "id": "comp_1761232069223_p8s3avwuo",
       "pin": "QF1",
       "sourceOutputPin": "Q1",
-      "label": "MOTOR FB",
-      "state": false
+      "state": false,
+      "label": "FB MOTOR"
     }
-  ]
+  ],
+  "timers": []
 }

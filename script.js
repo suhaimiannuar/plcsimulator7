@@ -139,6 +139,21 @@ const state = {
         isSimulationRunning: false,
         isPaused: false
     },
+    drag: {
+        isDragging: false,
+        draggedComponent: null,
+        startPos: null,
+        offset: { x: 0, y: 0 },
+        lastValidPos: null
+    },
+    clipboard: {
+        component: null
+    },
+    history: {
+        undoStack: [],
+        redoStack: [],
+        maxHistory: 50
+    },
     simulation: {
         intervalId: null,
         scanCount: 0,
@@ -388,7 +403,12 @@ function setupEventListeners() {
     // Canvas events
     elements.canvas.addEventListener('click', handleCanvasClick);
     elements.canvas.addEventListener('mousemove', handleCanvasMouseMove);
+    elements.canvas.addEventListener('mousedown', handleCanvasMouseDown);
+    elements.canvas.addEventListener('mouseup', handleCanvasMouseUp);
     elements.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', handleKeyboardShortcuts);
     
     // Control buttons
     elements.runPauseBtn.addEventListener('click', toggleRunPause);
@@ -454,6 +474,9 @@ function setMode(mode) {
 
 // ===== Canvas Interaction =====
 function handleCanvasClick(e) {
+    // Don't handle click if we just finished dragging
+    if (state.drag.isDragging) return;
+    
     const rect = elements.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -478,10 +501,59 @@ function handleCanvasMouseMove(e) {
     
     const gridPos = screenToGrid(x, y);
     
+    // Handle dragging
+    if (state.drag.isDragging && state.drag.draggedComponent) {
+        if (isValidGridPosition(gridPos)) {
+            // Check if target position is empty or same as current position
+            const targetComp = getComponentAt(gridPos.x, gridPos.y);
+            if (!targetComp || targetComp.id === state.drag.draggedComponent.id) {
+                state.drag.draggedComponent.position = { x: gridPos.x, y: gridPos.y };
+                state.drag.lastValidPos = { x: gridPos.x, y: gridPos.y };
+                renderGrid();
+            }
+        }
+    }
+    
+    // Update cursor position display
     if (isValidGridPosition(gridPos)) {
         elements.cursorPosition.textContent = `Position: (${gridPos.x}, ${gridPos.y})`;
     } else {
         elements.cursorPosition.textContent = 'Position: (-, -)';
+    }
+}
+
+function handleCanvasMouseDown(e) {
+    // Only start drag in select mode
+    if (state.ui.mode !== 'select') return;
+    
+    const rect = elements.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const gridPos = screenToGrid(x, y);
+    
+    if (!isValidGridPosition(gridPos)) return;
+    
+    const component = getComponentAt(gridPos.x, gridPos.y);
+    if (component) {
+        // Start dragging
+        saveHistory(); // Save state before dragging
+        state.drag.isDragging = true;
+        state.drag.draggedComponent = component;
+        state.drag.startPos = { x: gridPos.x, y: gridPos.y };
+        state.drag.lastValidPos = { x: gridPos.x, y: gridPos.y };
+        state.ui.selectedComponent = component;
+        elements.canvas.style.cursor = 'grabbing';
+    }
+}
+
+function handleCanvasMouseUp(e) {
+    if (state.drag.isDragging) {
+        state.drag.isDragging = false;
+        state.drag.draggedComponent = null;
+        state.drag.startPos = null;
+        elements.canvas.style.cursor = 'default';
+        renderGrid();
     }
 }
 
@@ -510,8 +582,294 @@ function isValidGridPosition(pos) {
            pos.y >= 0 && pos.y < CONFIG.grid.rows;
 }
 
+// ===== Keyboard Shortcuts =====
+function handleKeyboardShortcuts(e) {
+    // Detect if Mac (Cmd) or Windows/Linux (Ctrl)
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+    
+    // Don't trigger shortcuts when typing in input fields
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    // Copy: Cmd/Ctrl + C
+    if (modifier && e.key === 'c') {
+        e.preventDefault();
+        copyComponent();
+        return;
+    }
+    
+    // Cut: Cmd/Ctrl + X
+    if (modifier && e.key === 'x') {
+        e.preventDefault();
+        cutComponent();
+        return;
+    }
+    
+    // Paste: Cmd/Ctrl + V
+    if (modifier && e.key === 'v') {
+        e.preventDefault();
+        pasteComponent();
+        return;
+    }
+    
+    // Undo: Cmd/Ctrl + Z (without Shift)
+    if (modifier && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+    }
+    
+    // Redo: Cmd/Ctrl + Shift + Z
+    if (modifier && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        redo();
+        return;
+    }
+    
+    // Delete: Delete or Backspace key
+    if ((e.key === 'Delete' || e.key === 'Backspace') && state.ui.selectedComponent) {
+        e.preventDefault();
+        deleteSelectedComponent();
+        return;
+    }
+}
+
+function copyComponent() {
+    if (!state.ui.selectedComponent) {
+        console.log('No component selected to copy');
+        return;
+    }
+    
+    // Deep clone the component
+    state.clipboard.component = JSON.parse(JSON.stringify(state.ui.selectedComponent));
+    console.log('Component copied:', state.clipboard.component.type);
+}
+
+function cutComponent() {
+    if (!state.ui.selectedComponent) {
+        console.log('No component selected to cut');
+        return;
+    }
+    
+    // Copy then delete
+    copyComponent();
+    deleteSelectedComponent();
+    console.log('Component cut');
+}
+
+function pasteComponent() {
+    if (!state.clipboard.component) {
+        console.log('No component in clipboard');
+        return;
+    }
+    
+    // Get current mouse position or use a default position
+    const rect = elements.canvas.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const gridPos = screenToGrid(centerX, centerY);
+    
+    // Find an empty position near the center
+    let targetPos = findEmptyPosition(gridPos.x, gridPos.y);
+    
+    if (!targetPos) {
+        console.log('No empty space to paste component');
+        return;
+    }
+    
+    saveHistory();
+    
+    // Create new component from clipboard with new ID and position
+    const newComponent = JSON.parse(JSON.stringify(state.clipboard.component));
+    newComponent.id = generateId();
+    newComponent.position = targetPos;
+    newComponent.hasCurrentFlow = false;
+    newComponent.state = false;
+    
+    state.diagram.components.push(newComponent);
+    
+    // If it has a pin assignment, create corresponding input/output/feedback/timer
+    if (newComponent.pin) {
+        const componentType = newComponent.type;
+        
+        if (componentType === 'NO_CONTACT' || componentType === 'NC_CONTACT') {
+            // Check if it's a feedback
+            const existingFeedback = state.diagram.feedbacks.find(f => f.pin === newComponent.pin);
+            if (existingFeedback) {
+                existingFeedback.componentIds.push(newComponent.id);
+            } else {
+                // Check if it's an input
+                const existingInput = state.diagram.inputs.find(i => i.pin === newComponent.pin);
+                if (existingInput) {
+                    existingInput.componentIds.push(newComponent.id);
+                }
+            }
+        } else if (componentType === 'OUTPUT_COIL') {
+            const existingOutput = state.diagram.outputs.find(o => o.pin === newComponent.pin);
+            if (existingOutput) {
+                existingOutput.componentIds.push(newComponent.id);
+            }
+        } else if (componentType === 'TON' || componentType === 'TOF' || componentType === 'TP') {
+            // Copy timer data
+            const existingTimer = state.diagram.timers.find(t => t.componentId === state.clipboard.component.id);
+            if (existingTimer) {
+                const newTimer = JSON.parse(JSON.stringify(existingTimer));
+                newTimer.componentId = newComponent.id;
+                newTimer.elapsed = 0;
+                newTimer.done = false;
+                newTimer.running = false;
+                state.diagram.timers.push(newTimer);
+            }
+        }
+    }
+    
+    state.ui.selectedComponent = newComponent;
+    renderGrid();
+    updateUI();
+    console.log('Component pasted at:', targetPos);
+}
+
+function deleteSelectedComponent() {
+    if (!state.ui.selectedComponent) return;
+    
+    saveHistory();
+    
+    const comp = state.ui.selectedComponent;
+    const pos = comp.position;
+    
+    // Remove from components array
+    state.diagram.components = state.diagram.components.filter(c => c.id !== comp.id);
+    
+    // Remove from inputs/outputs/feedbacks/timers
+    state.diagram.inputs.forEach(input => {
+        input.componentIds = input.componentIds.filter(id => id !== comp.id);
+    });
+    state.diagram.outputs.forEach(output => {
+        output.componentIds = output.componentIds.filter(id => id !== comp.id);
+    });
+    state.diagram.feedbacks.forEach(feedback => {
+        feedback.componentIds = feedback.componentIds.filter(id => id !== comp.id);
+    });
+    state.diagram.timers = state.diagram.timers.filter(t => t.componentId !== comp.id);
+    
+    // Clean up empty inputs/outputs/feedbacks
+    state.diagram.inputs = state.diagram.inputs.filter(i => i.componentIds.length > 0);
+    state.diagram.outputs = state.diagram.outputs.filter(o => o.componentIds.length > 0);
+    state.diagram.feedbacks = state.diagram.feedbacks.filter(f => f.componentIds.length > 0);
+    
+    state.ui.selectedComponent = null;
+    renderGrid();
+    updateUI();
+}
+
+function findEmptyPosition(startX, startY) {
+    // Try the starting position first
+    if (!getComponentAt(startX, startY)) {
+        return { x: startX, y: startY };
+    }
+    
+    // Search in a spiral pattern around the starting position
+    for (let radius = 1; radius <= 5; radius++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                const x = startX + dx;
+                const y = startY + dy;
+                if (isValidGridPosition({ x, y }) && !getComponentAt(x, y)) {
+                    return { x, y };
+                }
+            }
+        }
+    }
+    
+    return null; // No empty space found
+}
+
+// ===== Undo/Redo Functions =====
+function saveHistory() {
+    // Deep clone current diagram state
+    const stateCopy = {
+        components: JSON.parse(JSON.stringify(state.diagram.components)),
+        inputs: JSON.parse(JSON.stringify(state.diagram.inputs)),
+        outputs: JSON.parse(JSON.stringify(state.diagram.outputs)),
+        feedbacks: JSON.parse(JSON.stringify(state.diagram.feedbacks)),
+        timers: JSON.parse(JSON.stringify(state.diagram.timers))
+    };
+    
+    state.history.undoStack.push(stateCopy);
+    
+    // Limit history size
+    if (state.history.undoStack.length > state.history.maxHistory) {
+        state.history.undoStack.shift();
+    }
+    
+    // Clear redo stack when new action is performed
+    state.history.redoStack = [];
+}
+
+function undo() {
+    if (state.history.undoStack.length === 0) {
+        console.log('Nothing to undo');
+        return;
+    }
+    
+    // Save current state to redo stack
+    const currentState = {
+        components: JSON.parse(JSON.stringify(state.diagram.components)),
+        inputs: JSON.parse(JSON.stringify(state.diagram.inputs)),
+        outputs: JSON.parse(JSON.stringify(state.diagram.outputs)),
+        feedbacks: JSON.parse(JSON.stringify(state.diagram.feedbacks)),
+        timers: JSON.parse(JSON.stringify(state.diagram.timers))
+    };
+    state.history.redoStack.push(currentState);
+    
+    // Restore previous state
+    const previousState = state.history.undoStack.pop();
+    state.diagram.components = previousState.components;
+    state.diagram.inputs = previousState.inputs;
+    state.diagram.outputs = previousState.outputs;
+    state.diagram.feedbacks = previousState.feedbacks;
+    state.diagram.timers = previousState.timers;
+    
+    state.ui.selectedComponent = null;
+    renderGrid();
+    updateUI();
+    console.log('Undo performed');
+}
+
+function redo() {
+    if (state.history.redoStack.length === 0) {
+        console.log('Nothing to redo');
+        return;
+    }
+    
+    // Save current state to undo stack
+    const currentState = {
+        components: JSON.parse(JSON.stringify(state.diagram.components)),
+        inputs: JSON.parse(JSON.stringify(state.diagram.inputs)),
+        outputs: JSON.parse(JSON.stringify(state.diagram.outputs)),
+        feedbacks: JSON.parse(JSON.stringify(state.diagram.feedbacks)),
+        timers: JSON.parse(JSON.stringify(state.diagram.timers))
+    };
+    state.history.undoStack.push(currentState);
+    
+    // Restore next state
+    const nextState = state.history.redoStack.pop();
+    state.diagram.components = nextState.components;
+    state.diagram.inputs = nextState.inputs;
+    state.diagram.outputs = nextState.outputs;
+    state.diagram.feedbacks = nextState.feedbacks;
+    state.diagram.timers = nextState.timers;
+    
+    state.ui.selectedComponent = null;
+    renderGrid();
+    updateUI();
+    console.log('Redo performed');
+}
+
 // ===== Component Management =====
 function placeComponent(gridPos) {
+    saveHistory(); // Save state before placing component
+    
     // Check if cell is occupied
     const existing = getComponentAt(gridPos.x, gridPos.y);
     if (existing) {
@@ -564,6 +922,8 @@ function placeComponent(gridPos) {
 function deleteComponent(gridPos) {
     const component = getComponentAt(gridPos.x, gridPos.y);
     if (!component) return;
+    
+    saveHistory(); // Save state before deleting component
     
     const index = state.diagram.components.indexOf(component);
     if (index > -1) {
@@ -715,6 +1075,8 @@ function handleTimerConfig(e) {
     const component = state.ui.selectedComponent;
     if (!component) return;
     
+    saveHistory(); // Save state before timer configuration
+    
     const label = elements.timerLabel.value;
     const presetSeconds = parseFloat(elements.timerPreset.value);
     
@@ -798,6 +1160,8 @@ function handlePinAssignment(e) {
     
     const component = state.ui.selectedComponent;
     if (!component) return;
+    
+    saveHistory(); // Save state before pin assignment
     
     const pinValue = elements.pinNumber.value;
     const label = elements.pinLabel.value;
