@@ -38,6 +38,30 @@ const COMPONENT_TYPES = {
         activeColor: '#4CAF50',  // Green when current flows
         isOutput: true
     },
+    TON: {
+        name: 'Timer On-Delay',
+        symbol: 'TON',
+        color: '#9C27B0',        // Purple
+        activeColor: '#4CAF50',
+        isTimer: true,
+        isFunctionBlock: true  // Function block, not a simple contact
+    },
+    TOF: {
+        name: 'Timer Off-Delay',
+        symbol: 'TOF',
+        color: '#9C27B0',
+        activeColor: '#4CAF50',
+        isTimer: true,
+        isFunctionBlock: true
+    },
+    TP: {
+        name: 'Timer Pulse',
+        symbol: 'TP',
+        color: '#9C27B0',
+        activeColor: '#4CAF50',
+        isTimer: true,
+        isFunctionBlock: true
+    },
     HORIZONTAL_WIRE: {
         name: 'Horizontal Wire',
         symbol: '─',
@@ -105,18 +129,24 @@ const state = {
         components: [],
         inputs: [],
         outputs: [],
-        feedbacks: []  // Track feedback states (QF1, QF2, etc.)
+        feedbacks: [],  // Track feedback states (QF1, QF2, etc.)
+        timers: []      // Track timer instances
     },
     ui: {
         selectedComponentType: null,
         selectedComponent: null,
         mode: 'place', // 'place', 'select', 'delete'
-        isSimulationRunning: false
+        isSimulationRunning: false,
+        isPaused: false
     },
     simulation: {
         intervalId: null,
         scanCount: 0,
-        lastLoggedState: null  // Track last logged state to detect changes
+        lastLoggedState: null,  // Track last logged state to detect changes
+        scanCycleMs: 100,       // Default scan cycle in milliseconds
+        speedMultiplier: 1,     // Speed multiplier (0.1x to 10x)
+        timeElapsed: 0,         // Total elapsed time in seconds
+        startTime: null         // Timestamp when simulation started
     },
     pinConfig: null // Will store loaded pin configuration
 };
@@ -127,9 +157,15 @@ const elements = {
     ctx: null,
     
     // Buttons
-    runBtn: document.getElementById('runSimulation'),
-    stopBtn: document.getElementById('stopSimulation'),
-    stepBtn: document.getElementById('stepSimulation'),
+    runPauseBtn: document.getElementById('runPauseSimulation'),
+    resetBtn: document.getElementById('resetSimulation'),
+    scanCycleInput: document.getElementById('scanCycle'),
+    speedMultiplierSelect: document.getElementById('speedMultiplier'),
+    timeElapsedDisplay: document.getElementById('timeElapsed'),
+    librariesBtn: document.getElementById('librariesBtn'),
+    librariesModal: document.getElementById('librariesModal'),
+    libraryList: document.getElementById('libraryList'),
+    loadLibraryBtn: document.getElementById('loadLibraryBtn'),
     newBtn: document.getElementById('newDiagram'),
     saveBtn: document.getElementById('saveDiagram'),
     loadBtn: document.getElementById('loadDiagram'),
@@ -154,14 +190,24 @@ const elements = {
     feedbackPinList: document.getElementById('feedbackPinList'),
     outputPinList: document.getElementById('outputPinList'),
     
-    // Modal
+    // Pin Modal
     pinModal: document.getElementById('pinModal'),
     pinForm: document.getElementById('pinAssignmentForm'),
     modalTitle: document.getElementById('modalTitle'),
     pinNumber: document.getElementById('pinNumber'),
     pinLabel: document.getElementById('pinLabel'),
     cancelPinBtn: document.getElementById('cancelPin'),
-    closeModal: document.querySelector('.close')
+    closeModal: document.querySelector('.close'),
+    
+    // Timer Modal
+    timerModal: document.getElementById('timerModal'),
+    timerForm: document.getElementById('timerConfigForm'),
+    timerModalTitle: document.getElementById('timerModalTitle'),
+    timerLabel: document.getElementById('timerLabel'),
+    timerPreset: document.getElementById('timerPreset'),
+    timerTypeDisplay: document.getElementById('timerTypeDisplay'),
+    cancelTimerBtn: document.getElementById('cancelTimer'),
+    closeTimerModal: document.querySelector('.close-timer')
 };
 
 // ===== Initialization =====
@@ -180,8 +226,6 @@ async function init() {
     renderGrid();
     updateUI();
     updatePinList();
-    
-    console.log('PLC Ladder Diagram Simulator initialized');
 }
 
 /**
@@ -191,9 +235,8 @@ async function loadPinConfiguration() {
     try {
         const response = await fetch('pin-config.json');
         state.pinConfig = await response.json();
-        console.log('✅ Pin configuration loaded:', state.pinConfig);
     } catch (error) {
-        console.error('❌ Failed to load pin configuration:', error);
+        console.error('Failed to load pin configuration:', error);
         // Fallback to default configuration
         state.pinConfig = {
             inputs: Array.from({length: 8}, (_, i) => ({
@@ -348,9 +391,10 @@ function setupEventListeners() {
     elements.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
     // Control buttons
-    elements.runBtn.addEventListener('click', startSimulation);
-    elements.stopBtn.addEventListener('click', stopSimulation);
-    elements.stepBtn.addEventListener('click', stepSimulation);
+    elements.runPauseBtn.addEventListener('click', toggleRunPause);
+    elements.resetBtn.addEventListener('click', resetSimulation);
+    elements.scanCycleInput.addEventListener('change', updateScanCycle);
+    elements.speedMultiplierSelect.addEventListener('change', updateSpeedMultiplier);
     elements.newBtn.addEventListener('click', newDiagram);
     elements.saveBtn.addEventListener('click', saveDiagram);
     elements.loadBtn.addEventListener('click', loadDiagram);
@@ -362,6 +406,18 @@ function setupEventListeners() {
     elements.closeModal.addEventListener('click', closeModal);
     elements.cancelPinBtn.addEventListener('click', closeModal);
     elements.pinForm.addEventListener('submit', handlePinAssignment);
+    
+    // Timer modal events
+    elements.closeTimerModal.addEventListener('click', closeTimerModal);
+    elements.cancelTimerBtn.addEventListener('click', closeTimerModal);
+    elements.timerForm.addEventListener('submit', handleTimerConfig);
+    
+    // Libraries modal events
+    elements.librariesBtn.addEventListener('click', openLibrariesModal);
+    document.querySelector('.close-libraries').addEventListener('click', closeLibrariesModal);
+    document.querySelectorAll('.library-item').forEach(btn => {
+        btn.addEventListener('click', () => loadLibrary(btn.dataset.library));
+    });
     
     // Window resize
     window.addEventListener('resize', () => {
@@ -481,12 +537,23 @@ function placeComponent(gridPos) {
         metadata: {}
     };
     
+    // For timers, add preset time (default 1000ms = 1s)
+    if (component.type === 'TON' || component.type === 'TOF' || component.type === 'TP') {
+        component.preset = 1000; // Default 1 second
+    }
+    
     state.diagram.components.push(component);
     
-    // If it's an input or output, prompt for pin assignment
+    // Select the component for further configuration
+    state.ui.selectedComponent = component;
+    
+    // If it's a timer (function block), prompt for configuration
     const typeInfo = COMPONENT_TYPES[component.type];
-    if (typeInfo.isInput || typeInfo.isOutput) {
-        state.ui.selectedComponent = component;
+    if (typeInfo.isFunctionBlock) {
+        openTimerConfigModal(component);
+    }
+    // If it's an input or output contact/coil, prompt for pin assignment
+    else if (typeInfo.isInput || typeInfo.isOutput) {
         openPinModal(component);
     }
     
@@ -615,6 +682,115 @@ function openPinModal(component) {
 
 function closeModal() {
     elements.pinModal.classList.remove('show');
+}
+
+function openTimerConfigModal(component) {
+    const typeInfo = COMPONENT_TYPES[component.type];
+    
+    // Update modal title
+    elements.timerModalTitle.textContent = `Configure ${typeInfo.name}`;
+    
+    // Pre-fill existing values
+    elements.timerLabel.value = component.label || '';
+    elements.timerPreset.value = (component.preset || 1000) / 1000; // Convert ms to seconds
+    
+    // Show timer type
+    const timerDescriptions = {
+        'TON': 'TON - On Delay (Output turns ON after preset time)',
+        'TOF': 'TOF - Off Delay (Output turns OFF after preset time)',
+        'TP': 'TP - Pulse (Output pulses for preset time duration)'
+    };
+    elements.timerTypeDisplay.textContent = timerDescriptions[component.type] || component.type;
+    
+    elements.timerModal.classList.add('show');
+}
+
+function closeTimerModal() {
+    elements.timerModal.classList.remove('show');
+}
+
+function handleTimerConfig(e) {
+    e.preventDefault();
+    
+    const component = state.ui.selectedComponent;
+    if (!component) return;
+    
+    const label = elements.timerLabel.value;
+    const presetSeconds = parseFloat(elements.timerPreset.value);
+    
+    if (presetSeconds <= 0) {
+        alert('Preset time must be greater than 0');
+        return;
+    }
+    
+    // Update component
+    component.label = label || '';
+    component.preset = presetSeconds * 1000; // Convert seconds to milliseconds
+    
+    closeTimerModal();
+    
+    // Update UI
+    if (state.ui.selectedComponent === component) {
+        displayProperties(component);
+    }
+    
+    renderGrid();
+}
+
+// ===== Libraries =====
+function openLibrariesModal() {
+    elements.librariesModal.classList.add('show');
+}
+
+function closeLibrariesModal() {
+    elements.librariesModal.classList.remove('show');
+}
+
+async function loadLibrary(libraryName) {
+    // Confirm with user
+    const confirmed = confirm(`Load "${libraryName}" circuit? This will replace your current diagram.`);
+    if (!confirmed) return;
+    
+    try {
+        const response = await fetch(`libs/${libraryName}.json`);
+        if (!response.ok) {
+            throw new Error(`Failed to load library: ${response.statusText}`);
+        }
+        
+        const libraryData = await response.json();
+        
+        // Stop simulation if running
+        if (state.ui.isSimulationRunning) {
+            resetSimulation();
+        }
+        
+        // Load the library data into the diagram
+        state.diagram = {
+            metadata: libraryData.metadata || {
+                name: libraryData.metadata?.name || 'Library Circuit',
+                created: new Date().toISOString(),
+                modified: new Date().toISOString()
+            },
+            grid: CONFIG.grid,
+            components: libraryData.components || [],
+            inputs: libraryData.inputs || [],
+            outputs: libraryData.outputs || [],
+            feedbacks: libraryData.feedbacks || [],
+            timers: libraryData.timers || []
+        };
+        
+        // Update UI
+        renderGrid();
+        updateUI();
+        updatePinList();
+        
+        closeLibrariesModal();
+        
+        alert(`Library "${libraryData.metadata.name}" loaded successfully!`);
+    } catch (error) {
+        console.error('Failed to load library:', error);
+        alert(`Failed to load library: ${error.message}`);
+    }
 }
 
 function handlePinAssignment(e) {
@@ -880,6 +1056,11 @@ function drawComponent(component) {
         case 'OUTPUT_COIL':
             drawCoil(ctx, cellCenter, color);
             break;
+        case 'TON':
+        case 'TOF':
+        case 'TP':
+            drawTimer(ctx, cellCenter, component.type, color, component);
+            break;
         case 'HORIZONTAL_WIRE':
             drawHorizontalWire(ctx, cellCenter, color);
             break;
@@ -963,6 +1144,55 @@ function drawCoil(ctx, center, color) {
     // Circle
     ctx.beginPath();
     ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+function drawTimer(ctx, center, type, color, component) {
+    const width = 40;
+    const height = 35;
+    
+    // Draw box
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    
+    // Box around timer
+    ctx.beginPath();
+    ctx.rect(center.x - width/2, center.y - height/2, width, height);
+    ctx.stroke();
+    
+    // Timer type text
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(type, center.x, center.y - 5);
+    
+    // Show timer state
+    const timer = state.diagram.timers.find(t => t.id === component.id);
+    if (timer) {
+        ctx.font = '8px sans-serif';
+        const timeText = `${(timer.elapsed / 1000).toFixed(1)}s`;
+        ctx.fillText(timeText, center.x, center.y + 8);
+        
+        // Show done indicator
+        if (timer.done) {
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(center.x + width/2 - 5, center.y - height/2 + 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    // Draw connections (horizontal lines for current flow)
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(center.x - width, center.y);
+    ctx.lineTo(center.x - width/2, center.y);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(center.x + width/2, center.y);
+    ctx.lineTo(center.x + width, center.y);
     ctx.stroke();
 }
 
@@ -1099,19 +1329,47 @@ function updateInputList() {
         return;
     }
     
-    elements.inputList.innerHTML = state.diagram.inputs.map(input => `
-        <div class="io-item">
-            <div class="io-item-header">
-                <div class="io-item-label">
-                    <span class="pin-badge">${input.pin}</span>
-                    <span>${input.label}</span>
+    // Check if we need to rebuild the list (number of inputs changed)
+    const currentItems = elements.inputList.querySelectorAll('.io-item');
+    const needsRebuild = currentItems.length !== state.diagram.inputs.length;
+    
+    if (needsRebuild) {
+        // Full rebuild when inputs are added/removed
+        elements.inputList.innerHTML = state.diagram.inputs.map(input => `
+            <div class="io-item" data-input-id="${input.id}">
+                <div class="io-item-header">
+                    <div class="io-item-label">
+                        <span class="pin-badge">${input.pin}</span>
+                        <span>${input.label}</span>
+                    </div>
+                    <div class="io-toggle ${input.state ? 'active' : ''}" 
+                         onclick="window.toggleInput('${input.id}')"></div>
                 </div>
-                <div class="io-toggle ${input.state ? 'active' : ''}" 
-                     onclick="toggleInput('${input.id}')"></div>
+                <div class="io-item-state">State: ${input.state ? 'ON' : 'OFF'}</div>
             </div>
-            <div class="io-item-state">State: ${input.state ? 'ON' : 'OFF'}</div>
-        </div>
-    `).join('');
+        `).join('');
+    } else {
+        // Just update existing elements (preserves event handlers during simulation)
+        state.diagram.inputs.forEach(input => {
+            const item = elements.inputList.querySelector(`[data-input-id="${input.id}"]`);
+            if (item) {
+                const toggle = item.querySelector('.io-toggle');
+                const stateText = item.querySelector('.io-item-state');
+                
+                if (toggle) {
+                    if (input.state) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+                
+                if (stateText) {
+                    stateText.textContent = `State: ${input.state ? 'ON' : 'OFF'}`;
+                }
+            }
+        });
+    }
 }
 
 function updateFeedbackList() {
@@ -1120,18 +1378,46 @@ function updateFeedbackList() {
         return;
     }
     
-    elements.feedbackList.innerHTML = state.diagram.feedbacks.map(feedback => `
-        <div class="io-item">
-            <div class="io-item-header">
-                <div class="io-item-label">
-                    <span class="pin-badge">${feedback.pin}</span>
-                    <span>${feedback.label}</span>
+    // Check if we need to rebuild the list
+    const currentItems = elements.feedbackList.querySelectorAll('.io-item');
+    const needsRebuild = currentItems.length !== state.diagram.feedbacks.length;
+    
+    if (needsRebuild) {
+        // Full rebuild when feedbacks are added/removed
+        elements.feedbackList.innerHTML = state.diagram.feedbacks.map(feedback => `
+            <div class="io-item" data-feedback-id="${feedback.id}">
+                <div class="io-item-header">
+                    <div class="io-item-label">
+                        <span class="pin-badge">${feedback.pin}</span>
+                        <span>${feedback.label}</span>
+                    </div>
                 </div>
+                <div class="output-indicator ${feedback.state ? 'active' : ''}"></div>
+                <div class="io-item-state">State: ${feedback.state ? 'ON' : 'OFF'}</div>
             </div>
-            <div class="output-indicator ${feedback.state ? 'active' : ''}"></div>
-            <div class="io-item-state">State: ${feedback.state ? 'ON' : 'OFF'}</div>
-        </div>
-    `).join('');
+        `).join('');
+    } else {
+        // Just update existing elements
+        state.diagram.feedbacks.forEach(feedback => {
+            const item = elements.feedbackList.querySelector(`[data-feedback-id="${feedback.id}"]`);
+            if (item) {
+                const indicator = item.querySelector('.output-indicator');
+                const stateText = item.querySelector('.io-item-state');
+                
+                if (indicator) {
+                    if (feedback.state) {
+                        indicator.classList.add('active');
+                    } else {
+                        indicator.classList.remove('active');
+                    }
+                }
+                
+                if (stateText) {
+                    stateText.textContent = `State: ${feedback.state ? 'ON' : 'OFF'}`;
+                }
+            }
+        });
+    }
 }
 
 function updateOutputList() {
@@ -1140,23 +1426,91 @@ function updateOutputList() {
         return;
     }
     
-    elements.outputList.innerHTML = state.diagram.outputs.map(output => `
-        <div class="io-item">
-            <div class="io-item-header">
-                <div class="io-item-label">
-                    <span class="pin-badge">${output.pin}</span>
-                    <span>${output.label}</span>
+    // Check if we need to rebuild the list
+    const currentItems = elements.outputList.querySelectorAll('.io-item');
+    const needsRebuild = currentItems.length !== state.diagram.outputs.length;
+    
+    if (needsRebuild) {
+        // Full rebuild when outputs are added/removed
+        elements.outputList.innerHTML = state.diagram.outputs.map(output => `
+            <div class="io-item" data-output-id="${output.id}">
+                <div class="io-item-header">
+                    <div class="io-item-label">
+                        <span class="pin-badge">${output.pin}</span>
+                        <span>${output.label}</span>
+                    </div>
                 </div>
+                <div class="output-indicator ${output.state ? 'active' : ''}"></div>
+                <div class="io-item-state">State: ${output.state ? 'ON' : 'OFF'}</div>
             </div>
-            <div class="output-indicator ${output.state ? 'active' : ''}"></div>
-            <div class="io-item-state">State: ${output.state ? 'ON' : 'OFF'}</div>
-        </div>
-    `).join('');
+        `).join('');
+    } else {
+        // Just update existing elements
+        state.diagram.outputs.forEach(output => {
+            const item = elements.outputList.querySelector(`[data-output-id="${output.id}"]`);
+            if (item) {
+                const indicator = item.querySelector('.output-indicator');
+                const stateText = item.querySelector('.io-item-state');
+                
+                if (indicator) {
+                    if (output.state) {
+                        indicator.classList.add('active');
+                    } else {
+                        indicator.classList.remove('active');
+                    }
+                }
+                
+                if (stateText) {
+                    stateText.textContent = `State: ${output.state ? 'ON' : 'OFF'}`;
+                }
+            }
+        });
+    }
 }
 
 function displayProperties(component) {
     const typeInfo = COMPONENT_TYPES[component.type];
     
+    // For timer components, show different properties
+    if (typeInfo.isTimer) {
+        const presetSeconds = (component.preset || 1000) / 1000;
+        const timer = state.diagram.timers?.find(t => t.id === component.id);
+        const elapsedSeconds = timer ? (timer.elapsed / 1000).toFixed(2) : '0.00';
+        const doneState = timer?.done ? 'YES' : 'NO';
+        
+        elements.propertiesContent.innerHTML = `
+            <div class="property-group">
+                <div class="property-label">Type</div>
+                <div class="property-value">${typeInfo.name}</div>
+            </div>
+            <div class="property-group">
+                <div class="property-label">Label</div>
+                <div class="property-value">${component.label || 'None'}</div>
+            </div>
+            <div class="property-group">
+                <div class="property-label">Preset</div>
+                <div class="property-value">${presetSeconds}s</div>
+            </div>
+            <div class="property-group">
+                <div class="property-label">Elapsed</div>
+                <div class="property-value">${elapsedSeconds}s</div>
+            </div>
+            <div class="property-group">
+                <div class="property-label">Done (Q)</div>
+                <div class="property-value">${doneState}</div>
+            </div>
+            <div class="property-group">
+                <div class="property-label">State</div>
+                <div class="property-value">${component.state ? 'ON' : 'OFF'}</div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="editTimerConfig('${component.id}')">
+                Edit Configuration
+            </button>
+        `;
+        return;
+    }
+    
+    // For regular components
     elements.propertiesContent.innerHTML = `
         <div class="property-group">
             <div class="property-label">Type</div>
@@ -1186,20 +1540,24 @@ function displayProperties(component) {
     `;
 }
 
+window.editTimerConfig = function(componentId) {
+    const component = state.diagram.components.find(c => c.id === componentId);
+    if (component) {
+        state.ui.selectedComponent = component;
+        openTimerConfigModal(component);
+    }
+};
+
 // ===== Input Toggle =====
 window.toggleInput = function(inputId) {
-    console.log('🔘 Toggle input clicked:', inputId);
-    
     const input = state.diagram.inputs.find(i => i.id === inputId);
     if (!input) {
-        console.error('❌ Input not found:', inputId);
-        console.log('   Available inputs:', state.diagram.inputs.map(i => i.id));
+        console.error('Input not found:', inputId);
         return;
     }
     
     // Toggle state
     input.state = !input.state;
-    console.log(`   Input ${input.id} (${input.pin}) state: ${input.state ? 'ON' : 'OFF'}`);
     
     // Update linked components
     input.componentIds.forEach(compId => {
@@ -1207,17 +1565,14 @@ window.toggleInput = function(inputId) {
         if (component) {
             if (component.type === 'NO_CONTACT') {
                 component.state = input.state;
-                console.log(`     Updated NO contact ${compId}: ${component.state}`);
             } else if (component.type === 'NC_CONTACT') {
                 component.state = !input.state; // NC is inverted
-                console.log(`     Updated NC contact ${compId}: ${component.state}`);
             }
         }
     });
     
     // If simulation is running, trigger evaluation immediately on change
     if (state.ui.isSimulationRunning) {
-        console.log('   🔄 Triggering logic evaluation (on-change)...');
         traceCurrentFlow(); // Re-trace current flow
         evaluateLogic();
         updateOutputs();
@@ -1244,18 +1599,14 @@ window.editComponentPin = function(componentId) {
  * This ensures contacts reflect the current input toggle states
  */
 function syncContactStates() {
-    console.log('🔄 Syncing contact states with inputs...');
-    
     state.diagram.inputs.forEach(input => {
         input.componentIds.forEach(compId => {
             const component = state.diagram.components.find(c => c.id === compId);
             if (component) {
                 if (component.type === 'NO_CONTACT') {
                     component.state = input.state;
-                    console.log(`  NO contact ${compId}: ${component.state}`);
                 } else if (component.type === 'NC_CONTACT') {
                     component.state = !input.state; // NC is inverted
-                    console.log(`  NC contact ${compId}: ${component.state} (inverted from input ${input.state})`);
                 }
             }
         });
@@ -1287,7 +1638,6 @@ function createOrUpdateFeedback(outputPin, outputLabel) {
             label: outputLabel ? `${outputLabel} (Feedback)` : 'Feedback'
         };
         state.diagram.feedbacks.push(feedback);
-        console.log(`  ✨ Created feedback ${feedbackPin} for output ${outputPin}`);
     }
 }
 
@@ -1296,8 +1646,6 @@ function createOrUpdateFeedback(outputPin, outputLabel) {
  * Only creates feedbacks that are actually used by contacts
  */
 function initializeFeedbacks() {
-    console.log('🔄 Initializing feedback states...');
-    
     // Keep existing feedbacks
     const existingFeedbacks = [...state.diagram.feedbacks];
     
@@ -1316,7 +1664,6 @@ function initializeFeedbacks() {
         
         if (existing) {
             // Keep existing feedback with its custom label
-            console.log(`  ♻️  Keeping existing feedback ${existing.pin}: "${existing.label}"`);
         } else {
             // Create new feedback for this used pin
             const sourceOutputPin = feedbackPin.replace('QF', 'Q'); // QF1 -> Q1
@@ -1330,11 +1677,112 @@ function initializeFeedbacks() {
                 label: output && output.label ? `${output.label} (Feedback)` : 'Feedback'
             };
             state.diagram.feedbacks.push(feedback);
-            console.log(`  ➕ Created feedback ${feedback.pin} for used contact`);
         }
     });
+}
+
+/**
+ * Initialize timer instances for all timer components
+ */
+function initializeTimers() {
+    state.diagram.timers = [];
     
-    console.log(`  Total feedbacks: ${state.diagram.feedbacks.length}`);
+    // Find all timer components
+    const timerComponents = state.diagram.components.filter(c => 
+        c.type === 'TON' || c.type === 'TOF' || c.type === 'TP'
+    );
+    
+    timerComponents.forEach(comp => {
+        const timer = {
+            id: comp.id,
+            type: comp.type,
+            preset: comp.preset || 1000,  // Preset time in ms (default 1s)
+            elapsed: 0,                    // Elapsed time in ms
+            done: false,                   // Done bit (Q output)
+            running: false,                // Timer is counting
+            prevInput: false               // Previous input state for edge detection
+        };
+        state.diagram.timers.push(timer);
+    });
+}
+
+/**
+ * Update all timers based on scan cycle
+ */
+function updateTimers() {
+    const deltaMs = state.simulation.scanCycleMs * state.simulation.speedMultiplier;
+    
+    state.diagram.timers.forEach(timer => {
+        const component = state.diagram.components.find(c => c.id === timer.id);
+        if (!component) return;
+        
+        // Get input state (whether component has current flow to it)
+        const inputActive = component.hasCurrentFlow || false;
+        
+        switch (timer.type) {
+            case 'TON': // On-Delay: Turns on after input is on for preset time
+                if (inputActive) {
+                    if (!timer.running) {
+                        timer.running = true;
+                        timer.elapsed = 0;
+                    }
+                    timer.elapsed += deltaMs;
+                    if (timer.elapsed >= timer.preset) {
+                        timer.done = true;
+                        component.state = true;  // Timer output ON
+                    }
+                } else {
+                    timer.running = false;
+                    timer.elapsed = 0;
+                    timer.done = false;
+                    component.state = false;  // Timer output OFF
+                }
+                break;
+                
+            case 'TOF': // Off-Delay: Turns off after input goes off for preset time
+                if (inputActive) {
+                    timer.running = false;
+                    timer.elapsed = 0;
+                    timer.done = true;
+                    component.state = true;  // Output follows input when ON
+                } else {
+                    if (!timer.running) {
+                        timer.running = true;
+                        timer.elapsed = 0;
+                    }
+                    timer.elapsed += deltaMs;
+                    if (timer.elapsed >= timer.preset) {
+                        timer.done = false;
+                        component.state = false;  // Timer output OFF after delay
+                    } else {
+                        component.state = true;  // Still ON during delay
+                    }
+                }
+                break;
+                
+            case 'TP': // Pulse: Creates a pulse of preset duration on rising edge
+                const risingEdge = inputActive && !timer.prevInput;
+                
+                if (risingEdge) {
+                    timer.running = true;
+                    timer.elapsed = 0;
+                    timer.done = false;
+                    component.state = true;  // Pulse starts
+                }
+                
+                if (timer.running) {
+                    timer.elapsed += deltaMs;
+                    if (timer.elapsed >= timer.preset) {
+                        timer.running = false;
+                        timer.done = true;
+                        component.state = false;  // Pulse ends
+                    }
+                }
+                
+                timer.prevInput = inputActive;
+                break;
+        }
+    });
 }
 
 /**
@@ -1342,15 +1790,10 @@ function initializeFeedbacks() {
  * Called after evaluateLogic to sync QF with Q
  */
 function updateFeedbackStates() {
-    console.log('  🔄 Updating feedback states...');
-    
     state.diagram.feedbacks.forEach(feedback => {
         const output = state.diagram.outputs.find(o => o.pin === feedback.sourceOutputPin);
         if (output) {
-            const oldState = feedback.state;
             feedback.state = output.state;
-            
-            console.log(`     ${feedback.pin}: ${oldState} -> ${feedback.state} (from ${output.pin})`);
         }
     });
     
@@ -1361,38 +1804,43 @@ function updateFeedbackStates() {
             c.pin === feedback.pin
         );
         
-        console.log(`     Found ${feedbackContacts.length} contact(s) using ${feedback.pin}`);
-        
         feedbackContacts.forEach(contact => {
-            const oldContactState = contact.state;
             if (contact.type === 'NO_CONTACT') {
                 contact.state = feedback.state;
             } else if (contact.type === 'NC_CONTACT') {
                 contact.state = !feedback.state; // NC is inverted
             }
-            console.log(`       Contact ${contact.id} (${contact.type}): ${oldContactState} -> ${contact.state}`);
         });
     });
 }
 
+function toggleRunPause() {
+    if (!state.ui.isSimulationRunning) {
+        // Start simulation
+        startSimulation();
+    } else if (state.ui.isPaused) {
+        // Resume simulation
+        resumeSimulation();
+    } else {
+        // Pause simulation
+        pauseSimulation();
+    }
+}
+
 function startSimulation() {
     state.ui.isSimulationRunning = true;
+    state.ui.isPaused = false;
+    state.simulation.timeElapsed = 0;  // Reset simulated time
     
-    elements.runBtn.disabled = true;
-    elements.stopBtn.disabled = false;
+    elements.runPauseBtn.innerHTML = '⏸️ Pause';
+    elements.runPauseBtn.classList.remove('btn-success');
+    elements.runPauseBtn.classList.add('btn-warning');
     elements.statusDot.className = 'status-dot status-running';
     elements.statusText.textContent = 'Running';
     
-    // Reset last logged state to force initial log
-    state.simulation.lastLoggedState = null;
-    
-    // Initialize feedback states
+    // Initialize feedback states and timers
     initializeFeedbacks();
-    
-    // Log initial state
-    console.log('%c🚀 SIMULATION STARTED', 'color: #4CAF50; font-weight: bold; font-size: 16px;');
-    console.log('Simulation mode: ON-CHANGE (evaluates only when inputs change)');
-    console.log('');
+    initializeTimers();
     
     // Sync all contact states with their input states before starting
     syncContactStates();
@@ -1405,55 +1853,143 @@ function startSimulation() {
     updateOutputs();
     renderGrid();
     updateUI();
+    
+    // Start timer-based scan cycle
+    startScanCycleTimer();
 }
 
-function stopSimulation() {
-    state.ui.isSimulationRunning = false;
+function pauseSimulation() {
+    state.ui.isPaused = true;
+    stopScanCycleTimer();
     
-    // Clear all current flow
-    state.diagram.components.forEach(comp => {
-        comp.hasCurrentFlow = false;
+    elements.runPauseBtn.innerHTML = '▶️ Resume';
+    elements.runPauseBtn.classList.remove('btn-warning');
+    elements.runPauseBtn.classList.add('btn-success');
+    elements.statusDot.className = 'status-dot status-stopped';
+    elements.statusText.textContent = 'Paused';
+}
+
+function resumeSimulation() {
+    state.ui.isPaused = false;
+    state.simulation.startTime = Date.now() - (state.simulation.timeElapsed * 1000);
+    
+    elements.runPauseBtn.innerHTML = '⏸️ Pause';
+    elements.runPauseBtn.classList.remove('btn-success');
+    elements.runPauseBtn.classList.add('btn-warning');
+    elements.statusDot.className = 'status-dot status-running';
+    elements.statusText.textContent = 'Running';
+    
+    startScanCycleTimer();
+}
+
+function resetSimulation() {
+    state.ui.isSimulationRunning = false;
+    state.ui.isPaused = false;
+    state.simulation.timeElapsed = 0;
+    state.simulation.startTime = null;
+    state.simulation.scanCount = 0;
+    
+    // Stop timer
+    stopScanCycleTimer();
+    
+    // Reset all timers
+    state.diagram.timers.forEach(timer => {
+        timer.elapsed = 0;
+        timer.done = false;
+        timer.running = false;
     });
     
-    elements.runBtn.disabled = false;
-    elements.stopBtn.disabled = true;
+    // Clear all current flow AND component states
+    state.diagram.components.forEach(comp => {
+        comp.hasCurrentFlow = false;
+        comp.state = false; // Reset all contacts to OFF/de-energized
+    });
+    
+    // Reset all inputs to OFF
+    state.diagram.inputs.forEach(input => {
+        input.state = false;
+    });
+    
+    // Reset all outputs to OFF
+    state.diagram.outputs.forEach(output => {
+        output.state = false;
+    });
+    
+    // Reset all feedbacks to OFF
+    state.diagram.feedbacks.forEach(feedback => {
+        feedback.state = false;
+    });
+    
+    elements.runPauseBtn.innerHTML = '▶️ Run';
+    elements.runPauseBtn.classList.remove('btn-warning');
+    elements.runPauseBtn.classList.add('btn-success');
     elements.statusDot.className = 'status-dot status-stopped';
     elements.statusText.textContent = 'Stopped';
+    elements.timeElapsedDisplay.textContent = '0.00s';
     
     // Re-render to remove glow
     renderGrid();
-    
-    console.log('');
-    console.log('%c⏹ SIMULATION STOPPED', 'color: #F44336; font-weight: bold; font-size: 16px;');
-    console.log('');
+    updateUI();
 }
 
-function stepSimulation() {
-    console.log('%c⏯ STEP EXECUTION', 'color: #FF9800; font-weight: bold; font-size: 14px;');
-    console.log('');
-    // Force log on step (user explicitly requested it)
-    state.simulation.lastLoggedState = null;
+function startScanCycleTimer() {
+    // Clear existing timer if any
+    stopScanCycleTimer();
+    
+    // Calculate effective scan cycle with speed multiplier
+    const effectiveCycleMs = state.simulation.scanCycleMs / state.simulation.speedMultiplier;
+    
+    // Start interval timer
+    state.simulation.intervalId = setInterval(() => {
+        if (state.ui.isSimulationRunning && !state.ui.isPaused) {
+            scanCycle();
+        }
+    }, effectiveCycleMs);
+}
+
+function stopScanCycleTimer() {
+    if (state.simulation.intervalId) {
+        clearInterval(state.simulation.intervalId);
+        state.simulation.intervalId = null;
+    }
+}
+
+function scanCycle() {
+    // Update elapsed time (simulated time, affected by speed multiplier)
+    const deltaMs = state.simulation.scanCycleMs * state.simulation.speedMultiplier;
+    state.simulation.timeElapsed += deltaMs / 1000;
+    elements.timeElapsedDisplay.textContent = state.simulation.timeElapsed.toFixed(2) + 's';
+    
+    // Update timers
+    updateTimers();
+    
+    // Normal scan cycle - trace current flow and evaluate logic
     traceCurrentFlow();
     evaluateLogic();
     updateOutputs();
     renderGrid();
     updateUI();
+    
+    state.simulation.scanCount++;
 }
 
-function scanCycle() {
-    state.simulation.scanCount++;
-    
-    // Phase 1: Input Scan (already done via UI toggles)
-    
-    // Phase 2: Logic Solve
-    evaluateLogic();
-    
-    // Phase 3: Output Scan
-    updateOutputs();
-    
-    // Phase 4: Render
-    renderGrid();
-    updateUI();
+function updateScanCycle() {
+    const newCycle = parseInt(elements.scanCycleInput.value);
+    if (newCycle >= 10 && newCycle <= 5000) {
+        state.simulation.scanCycleMs = newCycle;
+        // Restart timer if simulation is running
+        if (state.ui.isSimulationRunning && !state.ui.isPaused) {
+            startScanCycleTimer();
+        }
+    }
+}
+
+function updateSpeedMultiplier() {
+    state.simulation.speedMultiplier = parseFloat(elements.speedMultiplierSelect.value);
+    // Restart timer if simulation is running
+    if (state.ui.isSimulationRunning && !state.ui.isPaused) {
+        startScanCycleTimer();
+    }
 }
 
 /**
@@ -1461,19 +1997,6 @@ function scanCycle() {
  * Makes wires glow when current is flowing through them
  */
 function traceCurrentFlow() {
-    console.log('⚡ Tracing current flow...');
-    
-    // Debug: Show all contact states
-    const contacts = state.diagram.components.filter(c => 
-        c.type === 'NO_CONTACT' || c.type === 'NC_CONTACT'
-    );
-    console.log('  Contact states:');
-    contacts.forEach(c => {
-        const input = state.diagram.inputs.find(i => i.componentIds.includes(c.id));
-        const inputState = input ? input.state : 'N/A';
-        console.log(`    ${c.type} at (${c.position.x}, ${c.position.y}): input=${inputState}, component.state=${c.state}, conducts=${c.state ? 'YES' : 'NO'}`);
-    });
-    
     // Step 1: Reset all components - no current by default
     state.diagram.components.forEach(comp => {
         comp.hasCurrentFlow = false;
@@ -1483,16 +2006,10 @@ function traceCurrentFlow() {
     // Find all components at x=0 or x=1 (directly connected to L+)
     const lPlusComponents = state.diagram.components.filter(c => c.position.x <= 1);
     
-    console.log(`  Starting from ${lPlusComponents.length} component(s) near L+`);
-    
     // Step 3: Trace from each L+ component
     lPlusComponents.forEach(startComp => {
         traceFromComponent(startComp, 'right');
     });
-    
-    // Debug: Show which components have current
-    const energized = state.diagram.components.filter(c => c.hasCurrentFlow);
-    console.log(`  ✅ ${energized.length} component(s) have current flow`);
 }
 
 /**
@@ -1529,6 +2046,18 @@ function traceFromComponent(component, direction) {
             return;
         }
         // Contact is closed - continue tracing
+        traceInDirection(x, y, 'right');
+        return;
+    }
+    
+    // If we hit a timer, check if it conducts (acts like a contact)
+    if (type === 'TON' || type === 'TOF' || type === 'TP') {
+        // Timer acts like a contact - conducts when state is true (done bit)
+        if (!component.state) {
+            // Timer not done - stop tracing
+            return;
+        }
+        // Timer done - continue tracing
         traceInDirection(x, y, 'right');
         return;
     }
@@ -1647,13 +2176,10 @@ function traceInDirection(x, y, direction) {
 }
 
 function evaluateLogic() {
-    console.log('🔧 Evaluating logic based on current flow...');
-    
     // Get all output coils
     const outputs = state.diagram.components.filter(c => c.type === 'OUTPUT_COIL');
     
     if (outputs.length === 0) {
-        console.log('  ℹ️  No outputs to evaluate');
         return;
     }
     
@@ -1668,8 +2194,6 @@ function evaluateLogic() {
         // Output state is determined by current flow (requires complete path from L+ through coil to N)
         const hasCurrentFlow = output.hasCurrentFlow || false;
         output.state = hasCurrentFlow;
-        
-        console.log(`  ${output.pin} (${output.label || 'unlabeled'}): ${output.state ? 'ON' : 'OFF'} (current flow: ${hasCurrentFlow})`);
     });
     
     // Update output objects from component states (sync state.diagram.outputs with coil components)
@@ -1677,9 +2201,6 @@ function evaluateLogic() {
     
     // Update feedback states to match output states (AFTER output objects are synced)
     updateFeedbackStates();
-    
-    // Check for state changes and log only if changed
-    checkAndLogStateChanges();
 }
 
 /**

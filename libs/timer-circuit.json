@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "name": "Timer Circuit",
+    "description": "Delayed output using TON timer",
+    "created": "2025-10-22T00:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "comp_1",
+      "type": "NO_CONTACT",
+      "position": {"x": 2, "y": 2},
+      "pin": "I1",
+      "label": "START",
+      "state": false
+    },
+    {
+      "id": "comp_2",
+      "type": "HORIZONTAL_WIRE",
+      "position": {"x": 4, "y": 2},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_3",
+      "type": "TON",
+      "position": {"x": 7, "y": 2},
+      "pin": null,
+      "label": "Delay 2s",
+      "state": false,
+      "preset": 2000
+    },
+    {
+      "id": "comp_4",
+      "type": "HORIZONTAL_WIRE",
+      "position": {"x": 10, "y": 2},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_5",
+      "type": "OUTPUT_COIL",
+      "position": {"x": 12, "y": 2},
+      "pin": "Q1",
+      "label": "MOTOR",
+      "state": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "input_1",
+      "pin": "I1",
+      "label": "START",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_1"]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output_1",
+      "pin": "Q1",
+      "label": "MOTOR",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_5"]
+    }
+  ],
+  "timers": [
+    {
+      "id": "comp_3",
+      "type": "TON",
+      "preset": 2000,
+      "elapsed": 0,
+      "done": false,
+      "running": false,
+      "prevInput": false
+    }
+  ]
+}

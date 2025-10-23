@@ -15,6 +15,7 @@
                 <button id="newDiagram" class="btn btn-secondary">New</button>
                 <button id="saveDiagram" class="btn btn-secondary">Save</button>
                 <button id="loadDiagram" class="btn btn-secondary">Load</button>
+                <button id="librariesBtn" class="btn btn-info">📚 Libraries</button>
                 <button id="clearDiagram" class="btn btn-danger">Clear</button>
             </div>
         </header>
@@ -36,6 +37,21 @@
                         </button>
                         <button class="component-btn icon-only" data-type="OUTPUT_COIL" title="Output Coil">
                             <span class="component-icon">( )</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="component-category">
+                    <h3>Timers</h3>
+                    <div class="component-grid compact-grid">
+                        <button class="component-btn icon-only" data-type="TON" title="Timer On-Delay">
+                            <span class="component-icon">TON</span>
+                        </button>
+                        <button class="component-btn icon-only" data-type="TOF" title="Timer Off-Delay">
+                            <span class="component-icon">TOF</span>
+                        </button>
+                        <button class="component-btn icon-only" data-type="TP" title="Timer Pulse">
+                            <span class="component-icon">TP</span>
                         </button>
                     </div>
                 </div>
@@ -93,13 +109,29 @@
             <!-- Center - Ladder Grid -->
             <main class="ladder-workspace">
                 <div class="workspace-controls">
-                    <button id="runSimulation" class="btn btn-success">▶️ Run</button>
-                    <button id="stopSimulation" class="btn btn-danger" disabled>⏹️ Stop</button>
-                    <button id="stepSimulation" class="btn btn-secondary">⏯️ Step</button>
+                    <button id="runPauseSimulation" class="btn btn-success">▶️ Run</button>
+                    <button id="resetSimulation" class="btn btn-warning">🔄 Reset</button>
                     <span class="status-indicator">
                         <span id="statusDot" class="status-dot status-stopped"></span>
                         <span id="statusText">Stopped</span>
                     </span>
+                    <div class="timer-controls">
+                        <label for="timeElapsed">Time:</label>
+                        <span id="timeElapsed" class="time-display">0.00s</span>
+                        <label for="scanCycle" style="margin-left: 15px;">Scan Cycle:</label>
+                        <input type="number" id="scanCycle" min="10" max="5000" value="100" step="10">
+                        <span>ms</span>
+                        <label for="speedMultiplier" style="margin-left: 15px;">Speed:</label>
+                        <select id="speedMultiplier">
+                            <option value="0.1">0.1x (Slow)</option>
+                            <option value="0.25">0.25x</option>
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x (Normal)</option>
+                            <option value="2">2x (Fast)</option>
+                            <option value="5">5x</option>
+                            <option value="10">10x (Very Fast)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid-container">
@@ -175,7 +207,71 @@
         </div>
     </div>
 
+    <!-- Modal for Timer Configuration -->
+    <div id="timerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-timer">&times;</span>
+            <h2 id="timerModalTitle">Configure Timer</h2>
+            <form id="timerConfigForm">
+                <div class="form-group">
+                    <label for="timerLabel">Label:</label>
+                    <input type="text" id="timerLabel" placeholder="e.g., Delay Start" required>
+                </div>
+                <div class="form-group">
+                    <label for="timerPreset">Preset Time (seconds):</label>
+                    <input type="number" id="timerPreset" min="0.1" max="3600" step="0.1" value="1.0" required>
+                </div>
+                <div class="form-group">
+                    <label>Timer Type:</label>
+                    <p id="timerTypeDisplay" style="color: #9C27B0; font-weight: bold;">TON - On Delay</p>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" id="cancelTimer">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Libraries -->
+    <div id="librariesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-libraries">&times;</span>
+            <h2>Example Circuit Libraries</h2>
+            <div class="library-container">
+                <p>Load a pre-built circuit example:</p>
+                <div id="libraryList" class="library-list">
+                    <button class="library-item" data-library="simple-on-off">
+                        <strong>Simple ON/OFF Circuit</strong>
+                        <p>Basic start/stop control with one input and one output</p>
+                    </button>
+                    <button class="library-item" data-library="and-circuit">
+                        <strong>AND Circuit</strong>
+                        <p>Two inputs in series (both must be ON)</p>
+                    </button>
+                    <button class="library-item" data-library="or-circuit">
+                        <strong>OR Circuit</strong>
+                        <p>Two inputs in parallel (either can be ON)</p>
+                    </button>
+                    <button class="library-item" data-library="complex-and-or">
+                        <strong>Complex AND/OR Circuit</strong>
+                        <p>Combination of series and parallel logic</p>
+                    </button>
+                    <button class="library-item" data-library="latch-circuit">
+                        <strong>Latch Circuit</strong>
+                        <p>Start/stop with feedback latching</p>
+                    </button>
+                    <button class="library-item" data-library="timer-circuit">
+                        <strong>Timer Circuit</strong>
+                        <p>Delayed output using TON timer</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="analysis-v2.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
+
