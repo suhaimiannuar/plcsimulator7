@@ -1,133 +1,43 @@
 {
   "metadata": {
     "name": "Complex AND/OR Circuit",
-    "description": "Combination of series and parallel logic",
+    "description": "Combination of series and parallel logic: (A AND B) OR C",
     "created": "2025-10-22T00:00:00.000Z"
   },
   "components": [
-    {
-      "id": "comp_1",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 1, "y": 2},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_2",
-      "type": "BRANCH_POINT",
-      "position": {"x": 1, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_3",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 1, "y": 4},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_4",
-      "type": "NO_CONTACT",
-      "position": {"x": 3, "y": 2},
-      "pin": "I1",
-      "label": "A",
-      "state": false
-    },
-    {
-      "id": "comp_5",
-      "type": "NO_CONTACT",
-      "position": {"x": 5, "y": 2},
-      "pin": "I2",
-      "label": "B",
-      "state": false
-    },
-    {
-      "id": "comp_6",
-      "type": "NO_CONTACT",
-      "position": {"x": 3, "y": 4},
-      "pin": "I3",
-      "label": "C",
-      "state": false
-    },
-    {
-      "id": "comp_7",
-      "type": "CORNER_DOWN_RIGHT",
-      "position": {"x": 7, "y": 2},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_8",
-      "type": "CORNER_DOWN_LEFT",
-      "position": {"x": 7, "y": 4},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_9",
-      "type": "VERTICAL_WIRE",
-      "position": {"x": 7, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_10",
-      "type": "HORIZONTAL_WIRE",
-      "position": {"x": 9, "y": 3},
-      "pin": null,
-      "label": "",
-      "state": false
-    },
-    {
-      "id": "comp_11",
-      "type": "OUTPUT_COIL",
-      "position": {"x": 12, "y": 3},
-      "pin": "Q1",
-      "label": "OUTPUT",
-      "state": false
-    }
+    {"id": "comp_1", "type": "HORIZONTAL_WIRE", "position": {"x": 0, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_2", "type": "HORIZONTAL_WIRE", "position": {"x": 1, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_3", "type": "NO_CONTACT", "position": {"x": 2, "y": 2}, "pin": "I1", "label": "A", "state": false},
+    {"id": "comp_4", "type": "NO_CONTACT", "position": {"x": 3, "y": 2}, "pin": "I2", "label": "B", "state": false},
+    {"id": "comp_5", "type": "HORIZONTAL_WIRE", "position": {"x": 0, "y": 4}, "pin": null, "label": "", "state": false},
+    {"id": "comp_6", "type": "HORIZONTAL_WIRE", "position": {"x": 1, "y": 4}, "pin": null, "label": "", "state": false},
+    {"id": "comp_7", "type": "NO_CONTACT", "position": {"x": 2, "y": 4}, "pin": "I3", "label": "C", "state": false},
+    {"id": "comp_8", "type": "HORIZONTAL_WIRE", "position": {"x": 3, "y": 4}, "pin": null, "label": "", "state": false},
+    {"id": "comp_9", "type": "CORNER_DOWN_LEFT", "position": {"x": 4, "y": 4}, "pin": null, "label": "", "state": false},
+    {"id": "comp_10", "type": "VERTICAL_WIRE", "position": {"x": 4, "y": 3}, "pin": null, "label": "", "state": false},
+    {"id": "comp_11", "type": "BRANCH_POINT", "position": {"x": 4, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_12", "type": "HORIZONTAL_WIRE", "position": {"x": 5, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_13", "type": "HORIZONTAL_WIRE", "position": {"x": 6, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_14", "type": "HORIZONTAL_WIRE", "position": {"x": 7, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_15", "type": "HORIZONTAL_WIRE", "position": {"x": 8, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_16", "type": "OUTPUT_COIL", "position": {"x": 9, "y": 2}, "pin": "Q1", "label": "OUTPUT", "state": false},
+    {"id": "comp_17", "type": "HORIZONTAL_WIRE", "position": {"x": 10, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_18", "type": "HORIZONTAL_WIRE", "position": {"x": 11, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_19", "type": "HORIZONTAL_WIRE", "position": {"x": 12, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_20", "type": "HORIZONTAL_WIRE", "position": {"x": 13, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_21", "type": "HORIZONTAL_WIRE", "position": {"x": 14, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_22", "type": "HORIZONTAL_WIRE", "position": {"x": 15, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_23", "type": "HORIZONTAL_WIRE", "position": {"x": 16, "y": 2}, "pin": null, "label": "", "state": false},
+    {"id": "comp_24", "type": "HORIZONTAL_WIRE", "position": {"x": 17, "y": 2}, "pin": null, "label": "", "state": false}
   ],
   "inputs": [
-    {
-      "id": "input_1",
-      "pin": "I1",
-      "label": "A",
-      "type": "DIGITAL",
-      "state": false,
-      "componentIds": ["comp_4"]
-    },
-    {
-      "id": "input_2",
-      "pin": "I2",
-      "label": "B",
-      "type": "DIGITAL",
-      "state": false,
-      "componentIds": ["comp_5"]
-    },
-    {
-      "id": "input_3",
-      "pin": "I3",
-      "label": "C",
-      "type": "DIGITAL",
-      "state": false,
-      "componentIds": ["comp_6"]
-    }
+    {"id": "input_1", "pin": "I1", "label": "A", "type": "DIGITAL", "state": false, "componentIds": ["comp_3"]},
+    {"id": "input_2", "pin": "I2", "label": "B", "type": "DIGITAL", "state": false, "componentIds": ["comp_4"]},
+    {"id": "input_3", "pin": "I3", "label": "C", "type": "DIGITAL", "state": false, "componentIds": ["comp_7"]}
   ],
   "outputs": [
-    {
-      "id": "output_1",
-      "pin": "Q1",
-      "label": "OUTPUT",
-      "type": "DIGITAL",
-      "state": false,
-      "componentIds": ["comp_11"]
-    }
-  ]
+    {"id": "output_1", "pin": "Q1", "label": "OUTPUT", "type": "DIGITAL", "state": false, "componentIds": ["comp_16"]}
+  ],
+  "feedbacks": [],
+  "timers": []
 }
