@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "name": "AND Circuit",
+    "description": "Two inputs in series - both must be ON",
+    "created": "2025-10-22T00:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "comp_1",
+      "type": "NO_CONTACT",
+      "position": {"x": 2, "y": 3},
+      "pin": "I1",
+      "label": "INPUT A",
+      "state": false
+    },
+    {
+      "id": "comp_2",
+      "type": "NO_CONTACT",
+      "position": {"x": 4, "y": 3},
+      "pin": "I2",
+      "label": "INPUT B",
+      "state": false
+    },
+    {
+      "id": "comp_3",
+      "type": "HORIZONTAL_WIRE",
+      "position": {"x": 6, "y": 3},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_4",
+      "type": "OUTPUT_COIL",
+      "position": {"x": 12, "y": 3},
+      "pin": "Q1",
+      "label": "OUTPUT",
+      "state": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "input_1",
+      "pin": "I1",
+      "label": "INPUT A",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_1"]
+    },
+    {
+      "id": "input_2",
+      "pin": "I2",
+      "label": "INPUT B",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_2"]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output_1",
+      "pin": "Q1",
+      "label": "OUTPUT",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_4"]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "name": "OR Circuit",
+    "description": "Two inputs in parallel - either can be ON",
+    "created": "2025-10-22T00:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "comp_1",
+      "type": "VERTICAL_WIRE",
+      "position": {"x": 1, "y": 2},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_2",
+      "type": "BRANCH_POINT",
+      "position": {"x": 1, "y": 3},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_3",
+      "type": "VERTICAL_WIRE",
+      "position": {"x": 1, "y": 4},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_4",
+      "type": "NO_CONTACT",
+      "position": {"x": 3, "y": 2},
+      "pin": "I1",
+      "label": "INPUT A",
+      "state": false
+    },
+    {
+      "id": "comp_5",
+      "type": "NO_CONTACT",
+      "position": {"x": 3, "y": 4},
+      "pin": "I2",
+      "label": "INPUT B",
+      "state": false
+    },
+    {
+      "id": "comp_6",
+      "type": "CORNER_DOWN_RIGHT",
+      "position": {"x": 5, "y": 2},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_7",
+      "type": "CORNER_DOWN_LEFT",
+      "position": {"x": 5, "y": 4},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_8",
+      "type": "VERTICAL_WIRE",
+      "position": {"x": 5, "y": 3},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_9",
+      "type": "HORIZONTAL_WIRE",
+      "position": {"x": 7, "y": 3},
+      "pin": null,
+      "label": "",
+      "state": false
+    },
+    {
+      "id": "comp_10",
+      "type": "OUTPUT_COIL",
+      "position": {"x": 12, "y": 3},
+      "pin": "Q1",
+      "label": "OUTPUT",
+      "state": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "input_1",
+      "pin": "I1",
+      "label": "INPUT A",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_4"]
+    },
+    {
+      "id": "input_2",
+      "pin": "I2",
+      "label": "INPUT B",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_5"]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output_1",
+      "pin": "Q1",
+      "label": "OUTPUT",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": ["comp_10"]
+    }
+  ]
+}
