@@ -66,10 +66,12 @@ function loadDiagram() {
 
 function clearDiagram() {
     if (confirm('Clear all components? This cannot be undone.')) {
+        saveHistory(); // Save state before clearing
         state.diagram.components = [];
         state.diagram.inputs = [];
         state.diagram.outputs = [];
         state.diagram.feedbacks = [];
+        state.diagram.timers = []; // Clear timers too!
         
         stopSimulation();
         renderGrid();
