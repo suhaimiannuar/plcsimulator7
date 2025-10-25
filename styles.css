@@ -154,6 +154,72 @@ body {
     border-color: #4CAF50;
 }
 
+/* ===== 3D Model Component Buttons ===== */
+.model-component-btn {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    border: 2px solid #3d5a80;
+    border-radius: 8px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 70px;
+    font-size: 12px;
+}
+
+.model-component-btn:hover {
+    background: linear-gradient(135deg, #3d5a80 0%, #496a95 100%);
+    border-color: #4a90e2;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.model-component-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.model-component-btn .component-icon {
+    font-size: 24px;
+    color: #4a90e2;
+}
+
+.model-component-btn .component-label {
+    font-size: 11px;
+    text-align: center;
+    color: #ecf0f1;
+    font-weight: 500;
+}
+
+/* Better spacing for 3D component categories */
+#model-components .component-category {
+    margin-bottom: 1.5rem;
+}
+
+#model-components .component-category h3 {
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: #4a90e2;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#model-components .component-category:last-child {
+    margin-bottom: 0;
+}
+
+/* Sidebar content containers */
+.sidebar-content {
+    width: 100%;
+    height: 100%;
+}
+
 .component-icon {
     font-size: 20px;
     font-weight: bold;
@@ -175,6 +241,35 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
     margin-bottom: 1rem;
+}
+
+/* Component grid layout for 3D model components */
+.component-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+/* For smaller categories, show 3 columns */
+.component-grid.three-columns {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+/* Responsive grid for wider sidebars */
+@media (min-width: 1400px) {
+    .component-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .component-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
 }
 
 /* Canvas styling */
@@ -280,6 +375,23 @@ body {
     flex-direction: column;
     background-color: var(--dark-bg);
     overflow: hidden;
+}
+
+/* ===== 3D Model Workspace ===== */
+.model-workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--dark-bg);
+    overflow: hidden;
+}
+
+.model-viewport {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
 }
 
 .workspace-controls {
@@ -525,6 +637,90 @@ body {
 .property-value {
     color: var(--text-primary);
     font-weight: 500;
+}
+
+/* ===== Transform Panel (3D Properties) ===== */
+.transform-panel {
+    background-color: var(--light-bg);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.transform-panel h3 {
+    color: var(--primary-color);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.transform-panel h4 {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.property-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.property-row label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    min-width: 80px;
+}
+
+.property-row input[type="number"],
+.property-row input[type="text"] {
+    background-color: var(--dark-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    width: 120px;
+    transition: border-color 0.2s;
+}
+
+.property-row input[type="number"]:focus,
+.property-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.property-row span {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.property-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.property-actions .btn {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+}
+
+#model-right-panels .properties-panel {
+    margin-bottom: 1rem;
+}
+
+#model-right-panels h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
 }
 
 /* ===== Buttons ===== */
