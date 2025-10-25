@@ -152,7 +152,7 @@ async function loadLibrary(libraryName) {
     if (!confirmed) return;
     
     try {
-        const response = await fetch(`libs/${libraryName}.json`);
+        const response = await fetch(`libs/ladder/${libraryName}.json`);
         if (!response.ok) {
             throw new Error(`Failed to load library: ${response.statusText}`);
         }

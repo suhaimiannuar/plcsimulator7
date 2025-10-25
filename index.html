@@ -17,6 +17,9 @@
                 <button id="loadDiagram" class="btn btn-secondary">Load</button>
                 <button id="librariesBtn" class="btn btn-info">📚 Libraries</button>
                 <button id="clearDiagram" class="btn btn-danger">Clear</button>
+                <div style="border-left: 2px solid #555; margin: 0 10px; height: 30px;"></div>
+                <button id="viewLadder" class="btn btn-primary">📊 Ladder</button>
+                <button id="view3D" class="btn btn-secondary">🎲 3D Model</button>
             </div>
         </header>
 
@@ -24,9 +27,11 @@
         <div class="main-content">
             <!-- Left Sidebar - Component Palette -->
             <aside class="sidebar sidebar-left">
-                <h2>Components</h2>
-                
-                <div class="component-category">
+                <!-- Ladder Diagram Components (shown in ladder view) -->
+                <div id="ladder-components" class="sidebar-content">
+                    <h2>Components</h2>
+                    
+                    <div class="component-category">
                     <h3>Input/Output</h3>
                     <div class="component-grid compact-grid">
                         <button class="component-btn icon-only" data-type="NO_CONTACT" title="Normally Open Contact">
@@ -110,10 +115,122 @@
                         </div>
                     </div>
                 </div>
+                </div>
+                <!-- End of Ladder Components -->
+
+                <!-- 3D Model Components (shown in 3D view, initially hidden) -->
+                <div id="model-components" class="sidebar-content" style="display: none;">
+                    <h2>3D Components</h2>
+                    
+                    <div class="component-category">
+                        <h3>Quick Actions</h3>
+                        <button id="createExample3D" class="btn btn-success btn-block">
+                            🏗️ Create Example Setup
+                        </button>
+                        <button id="viewAssignments3D" class="btn btn-info btn-block">
+                            📋 View Assignments
+                        </button>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Mounting Surfaces</h3>
+                        <div class="component-grid">
+                            <button class="model-component-btn" data-component="plate">
+                                <span class="component-icon">⬜</span>
+                                <span class="component-label">Plate</span>
+                            </button>
+                            <button class="model-component-btn" data-component="box">
+                                <span class="component-icon">📦</span>
+                                <span class="component-label">Box</span>
+                            </button>
+                            <button class="model-component-btn" data-component="shelf">
+                                <span class="component-icon">📐</span>
+                                <span class="component-label">Shelf</span>
+                            </button>
+                            <button class="model-component-btn" data-component="din-rail">
+                                <span class="component-icon">━━</span>
+                                <span class="component-label">DIN Rail</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>PLC Hardware</h3>
+                        <div class="component-grid">
+                            <button class="model-component-btn" data-component="power-supply">
+                                <span class="component-icon">🔌</span>
+                                <span class="component-label">Power Supply</span>
+                            </button>
+                            <button class="model-component-btn" data-component="cpu">
+                                <span class="component-icon">🖥️</span>
+                                <span class="component-label">CPU Module</span>
+                            </button>
+                            <button class="model-component-btn" data-component="digital-input">
+                                <span class="component-icon">📥</span>
+                                <span class="component-label">DI Module</span>
+                            </button>
+                            <button class="model-component-btn" data-component="digital-output">
+                                <span class="component-icon">📤</span>
+                                <span class="component-label">DO Module</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Field Devices</h3>
+                        <div class="component-grid">
+                            <button class="model-component-btn" data-component="button">
+                                <span class="component-icon">🔘</span>
+                                <span class="component-label">Button</span>
+                            </button>
+                            <button class="model-component-btn" data-component="motor">
+                                <span class="component-icon">⚙️</span>
+                                <span class="component-label">Motor</span>
+                            </button>
+                            <button class="model-component-btn" data-component="led">
+                                <span class="component-icon">💡</span>
+                                <span class="component-label">LED</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>View Controls</h3>
+                        <button id="toggleGrid3D" class="btn btn-secondary btn-block">
+                            📐 Toggle Grid
+                        </button>
+                        <button id="toggleAxes3D" class="btn btn-secondary btn-block">
+                            📏 Toggle Axes
+                        </button>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Transform Mode</h3>
+                        <select id="transformMode3D" class="form-control" style="width: 100%; padding: 8px;">
+                            <option value="translate">🔄 Move</option>
+                            <option value="rotate">🔁 Rotate</option>
+                            <option value="scale">📏 Scale</option>
+                        </select>
+                    </div>
+
+                    <div class="component-category" id="selectedComponentInfo3D" style="display: none; background: #2c3e50; padding: 10px; border-radius: 4px;">
+                        <h3>Selected Component</h3>
+                        <div id="selectedComponentDetails" style="font-size: 12px;">
+                            <p><strong>Name:</strong> <span id="compName">-</span></p>
+                            <p><strong>Type:</strong> <span id="compType">-</span></p>
+                            <p><strong>Assignment:</strong> <span id="compAssignment">-</span></p>
+                            <button id="assignSelected" class="btn btn-warning btn-block btn-sm">
+                                📌 Assign to Ladder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of 3D Model Components -->
+
             </aside>
 
             <!-- Center - Ladder Grid -->
-            <main class="ladder-workspace">
+            <main class="ladder-workspace" id="ladder-container">
                 <div class="workspace-controls">
                     <button id="runPauseSimulation" class="btn btn-success">▶️ Run</button>
                     <button id="resetSimulation" class="btn btn-warning">🔄 Reset</button>
@@ -150,39 +267,143 @@
                 </div>
             </main>
 
+            <!-- 3D Model View (initially hidden) -->
+            <main class="model-workspace" style="display: none;">
+                <div id="model-container" class="model-viewport" style="width: 100%; height: calc(100vh - 120px); background: #1e1e1e; position: relative;">
+                    <!-- Three.js canvas will be inserted here -->
+                    
+                    <!-- Component Info Panel (shown on selection) -->
+                    <div id="componentInfo" style="
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 12px;
+                        border-radius: 4px;
+                        display: none;
+                        max-width: 250px;
+                        z-index: 100;
+                    ">
+                        <h4 id="compInfoName" style="margin: 0 0 8px 0;"></h4>
+                        <div id="compInfoDetails" style="font-size: 12px;"></div>
+                    </div>
+                </div>
+            </main>
+
             <!-- Right Sidebar - I/O and Properties -->
             <aside class="sidebar sidebar-right">
-                <!-- Input Panel -->
-                <div class="io-panel">
-                    <h2>Inputs</h2>
-                    <div id="inputList" class="io-list">
-                        <p class="empty-message">No inputs assigned</p>
+                <!-- Ladder View Panels (shown when in ladder view) -->
+                <div id="ladder-right-panels">
+                    <!-- Input Panel -->
+                    <div class="io-panel">
+                        <h2>Inputs</h2>
+                        <div id="inputList" class="io-list">
+                            <p class="empty-message">No inputs assigned</p>
+                        </div>
+                        <button id="addInput" class="btn btn-secondary btn-small">+ Add Input</button>
                     </div>
-                    <button id="addInput" class="btn btn-secondary btn-small">+ Add Input</button>
+
+                    <!-- Feedback Panel -->
+                    <div class="io-panel">
+                        <h2>Feedbacks</h2>
+                        <div id="feedbackList" class="io-list">
+                            <p class="empty-message">No feedbacks available</p>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="io-panel">
+                        <h2>Outputs</h2>
+                        <div id="outputList" class="io-list">
+                            <p class="empty-message">No outputs assigned</p>
+                        </div>
+                        <button id="addOutput" class="btn btn-secondary btn-small">+ Add Output</button>
+                    </div>
+
+                    <!-- Properties Panel -->
+                    <div class="properties-panel">
+                        <h2>Properties</h2>
+                        <div id="propertiesContent" class="properties-content">
+                            <p class="empty-message">Select a component to view properties</p>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Feedback Panel -->
-                <div class="io-panel">
-                    <h2>Feedbacks</h2>
-                    <div id="feedbackList" class="io-list">
-                        <p class="empty-message">No feedbacks available</p>
+                <!-- 3D View Panels (shown when in 3D view) -->
+                <div id="model-right-panels" style="display: none;">
+                    <!-- 3D Model Properties -->
+                    <div class="properties-panel">
+                        <h2>3D Properties</h2>
+                        <div id="model3DProperties" class="properties-content">
+                            <p class="empty-message">Select a 3D model to edit properties</p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Output Panel -->
-                <div class="io-panel">
-                    <h2>Outputs</h2>
-                    <div id="outputList" class="io-list">
-                        <p class="empty-message">No outputs assigned</p>
-                    </div>
-                    <button id="addOutput" class="btn btn-secondary btn-small">+ Add Output</button>
-                </div>
+                    <!-- Transform Properties -->
+                    <div class="transform-panel" id="transformPanel" style="display: none;">
+                        <h3>Transform</h3>
+                        
+                        <div class="property-group">
+                            <h4>Position (meters)</h4>
+                            <div class="property-row">
+                                <label>X:</label>
+                                <input type="number" id="posX" step="0.01" value="0">
+                            </div>
+                            <div class="property-row">
+                                <label>Y:</label>
+                                <input type="number" id="posY" step="0.01" value="0">
+                            </div>
+                            <div class="property-row">
+                                <label>Z:</label>
+                                <input type="number" id="posZ" step="0.01" value="0">
+                            </div>
+                        </div>
 
-                <!-- Properties Panel -->
-                <div class="properties-panel">
-                    <h2>Properties</h2>
-                    <div id="propertiesContent" class="properties-content">
-                        <p class="empty-message">Select a component to view properties</p>
+                        <div class="property-group">
+                            <h4>Rotation (degrees)</h4>
+                            <div class="property-row">
+                                <label>X:</label>
+                                <input type="number" id="rotX" step="1" value="0" min="-180" max="180">
+                            </div>
+                            <div class="property-row">
+                                <label>Y:</label>
+                                <input type="number" id="rotY" step="1" value="0" min="-180" max="180">
+                            </div>
+                            <div class="property-row">
+                                <label>Z:</label>
+                                <input type="number" id="rotZ" step="1" value="0" min="-180" max="180">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <h4>Scale</h4>
+                            <div class="property-row">
+                                <label>Uniform:</label>
+                                <input type="number" id="scaleUniform" step="0.1" value="1" min="0.1" max="10">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <h4>Component Info</h4>
+                            <div class="property-row">
+                                <label>Name:</label>
+                                <input type="text" id="componentName" placeholder="Component name">
+                            </div>
+                            <div class="property-row">
+                                <label>Type:</label>
+                                <span id="componentType">-</span>
+                            </div>
+                            <div class="property-row">
+                                <label>Assignment:</label>
+                                <span id="componentAssignment">None</span>
+                            </div>
+                        </div>
+
+                        <div class="property-actions">
+                            <button id="resetTransform" class="btn btn-secondary btn-small">Reset</button>
+                            <button id="deleteComponent3D" class="btn btn-danger btn-small">Delete</button>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -276,36 +497,321 @@
         </div>
     </div>
 
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="document.getElementById('assignmentModal').style.display='none'">&times;</span>
+            <h2>Component to Ladder Assignment</h2>
+            
+            <!-- Single Component Assignment -->
+            <div id="singleAssignment" style="display: none;">
+                <h3 id="assignComponentName"></h3>
+                <div style="margin: 20px 0;">
+                    <label>Ladder Address:</label>
+                    <select id="ladderAddressSelect" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        <option value="">-- Select Ladder Address --</option>
+                    </select>
+                </div>
+                <div id="currentAssignment" style="margin: 10px 0; padding: 10px; background: #2c3e50; border-radius: 4px;"></div>
+                <div style="margin-top: 20px;">
+                    <button id="confirmAssignment" class="btn btn-success">✅ Assign</button>
+                    <button onclick="document.getElementById('assignmentModal').style.display='none'" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+            
+            <!-- All Assignments View -->
+            <div id="allAssignments">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <span style="color: #4CAF50;">✅ Assigned: <strong id="assignedCount">0</strong></span>
+                        <span style="margin-left: 20px; color: #FF9800;">⚠️ Unassigned 3D: <strong id="unassigned3DCount">0</strong></span>
+                        <span style="margin-left: 20px; color: #FF9800;">⚠️ Unassigned Ladder: <strong id="unassignedLadderCount">0</strong></span>
+                    </div>
+                    <button id="clearAllAssignments" class="btn btn-danger btn-sm">Clear All</button>
+                </div>
+                
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="position: sticky; top: 0; background: #2c3e50;">
+                            <tr>
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">3D Component</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Type</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Ladder Address</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentTableBody">
+                            <tr>
+                                <td colspan="4" style="padding: 20px; text-align: center; color: #7f8c8d;">No assignments yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <h3 style="margin-top: 30px;">Unassigned 3D Components</h3>
+                <div id="unassigned3DList" style="max-height: 200px; overflow-y: auto; background: #2c3e50; padding: 10px; border-radius: 4px;">
+                    <p style="color: #7f8c8d;">No unassigned components</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Analysis Library -->
     <script src="analysis-v2.js"></script>
     
+    <!-- Three.js Library (for 3D model) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <!-- Custom STEP Loader -->
+    <script src="js/model/loaders/stepLoader.js"></script>
+    
     <!-- PLC Simulator Modules (Load order is important!) -->
     <!-- 1. Configuration & Constants -->
-    <script src="js/config.js"></script>
+    <script src="js/ladder/config.js"></script>
     
     <!-- 2. State Management -->
-    <script src="js/state.js"></script>
+    <script src="js/ladder/state.js"></script>
     
     <!-- 3. DOM References -->
-    <script src="js/dom.js"></script>
+    <script src="js/ladder/dom.js"></script>
     
     <!-- 4. Utility Functions -->
-    <script src="js/canvas.js"></script>
-    <script src="js/keyboard.js"></script>
+    <script src="js/ladder/canvas.js"></script>
+    <script src="js/ladder/keyboard.js"></script>
     
     <!-- 5. Core Features -->
-    <script src="js/components.js"></script>
-    <script src="js/modals.js"></script>
-    <script src="js/rendering.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/simulation.js"></script>
-    <script src="js/diagram.js"></script>
+    <script src="js/ladder/components.js"></script>
+    <script src="js/ladder/modals.js"></script>
+    <script src="js/ladder/rendering.js"></script>
+    <script src="js/ladder/ui.js"></script>
+    <script src="js/ladder/simulation.js"></script>
+    <script src="js/ladder/diagram.js"></script>
     
     <!-- 6. Initialization -->
-    <script src="js/init.js"></script>
+    <script src="js/ladder/init.js"></script>
     
     <!-- 7. Entry Point -->
-    <script src="js/main.js"></script>
+    <script src="js/ladder/main.js"></script>
+    
+    <!-- 3D Model System -->
+    <!-- Configuration -->
+    <script src="js/model/config.js"></script>
+    
+    <!-- Shared Utilities -->
+    <script src="js/shared/utils.js"></script>
+    <script src="js/shared/assignment.js"></script>
+    <script src="js/shared/assignmentUI.js"></script>
+    <script src="js/shared/viewSwitching.js"></script>
+    
+    <!-- Mounting System -->
+    <script src="js/model/mounting.js"></script>
+    
+    <!-- Interaction System -->
+    <script src="js/model/interaction.js"></script>
+    
+    <!-- Property Editor -->
+    <script src="js/model/propertyEditor.js"></script>
+    
+    <!-- 3D Scene -->
+    <script src="js/model/scene.js"></script>
+    
+    <!-- 3D Model Initialization -->
+    <script src="js/model/init.js"></script>
+    
+    <!-- View Toggle Controls -->
+    <script>
+        // Initialize view toggle buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const viewLadderBtn = document.getElementById('viewLadder');
+            const view3DBtn = document.getElementById('view3D');
+            
+            const createExampleBtn = document.getElementById('createExample3D');
+            const autoWireBtn = document.getElementById('autoWire3D');
+            const exportBOMBtn = document.getElementById('exportBOM3D');
+            const toggleGridBtn = document.getElementById('toggleGrid3D');
+            const toggleAxesBtn = document.getElementById('toggleAxes3D');
+            const transformModeSelect = document.getElementById('transformMode3D');
+            const syncLadderBtn = document.getElementById('syncLadder3D');
+            
+            // Right sidebar panels
+            const ladderRightPanels = document.getElementById('ladder-right-panels');
+            const modelRightPanels = document.getElementById('model-right-panels');
+            
+            // View toggle handlers
+            viewLadderBtn?.addEventListener('click', function() {
+                const ladderContainer = document.getElementById('ladder-container');
+                const modelWorkspace = document.querySelector('.model-workspace');
+                
+                ladderContainer.style.display = 'flex';
+                ladderContainer.style.width = '100%';
+                modelWorkspace.style.display = 'none';
+                
+                // Show ladder right panels, hide 3D panels
+                if (ladderRightPanels) ladderRightPanels.style.display = 'block';
+                if (modelRightPanels) modelRightPanels.style.display = 'none';
+                
+                viewLadderBtn.classList.add('btn-primary');
+                viewLadderBtn.classList.remove('btn-secondary');
+                view3DBtn.classList.remove('btn-primary');
+                view3DBtn.classList.add('btn-secondary');
+            });
+            
+            view3DBtn?.addEventListener('click', function() {
+                const ladderContainer = document.getElementById('ladder-container');
+                const modelWorkspace = document.querySelector('.model-workspace');
+                
+                ladderContainer.style.display = 'none';
+                modelWorkspace.style.display = 'flex';
+                modelWorkspace.style.width = '100%';
+                
+                // Show 3D right panels, hide ladder panels
+                if (ladderRightPanels) ladderRightPanels.style.display = 'none';
+                if (modelRightPanels) modelRightPanels.style.display = 'block';
+                
+                // Initialize 3D model if not already
+                if (!window.modelScene) {
+                    initModel();
+                    // Small delay to ensure container is rendered
+                    setTimeout(() => {
+                        if (window.modelScene) {
+                            window.modelScene.onWindowResize();
+                        }
+                    }, 100);
+                }
+                
+                view3DBtn.classList.add('btn-primary');
+                view3DBtn.classList.remove('btn-secondary');
+                viewLadderBtn.classList.remove('btn-primary');
+                viewLadderBtn.classList.add('btn-secondary');
+            });
+            
+            // 3D Model controls
+            createExampleBtn?.addEventListener('click', function() {
+                if (!window.modelScene) {
+                    alert('Please switch to 3D view first');
+                    return;
+                }
+                createExampleSetup();
+            });
+            
+            syncLadderBtn?.addEventListener('click', function() {
+                const result = syncLadderTo3D();
+                if (result) {
+                    alert(`Found ${result.io.inputs.length} inputs and ${result.io.outputs.length} outputs\n` +
+                          `Suggested ${result.suggestions.length} components`);
+                    console.table(result.suggestions);
+                }
+            });
+            
+            autoWireBtn?.addEventListener('click', function() {
+                generateAutoWiring();
+                alert('Auto-wiring generated. Check console for details.');
+            });
+            
+            exportBOMBtn?.addEventListener('click', function() {
+                const bom = exportBOM();
+                console.log('Bill of Materials:', bom);
+                alert('BOM exported to console. See browser developer console.');
+            });
+            
+            // Grid and axes toggle
+            toggleGridBtn?.addEventListener('click', function() {
+                if (window.modelScene) {
+                    const visible = window.modelScene.toggleGrid();
+                    toggleGridBtn.classList.toggle('btn-primary', visible);
+                    toggleGridBtn.classList.toggle('btn-secondary', !visible);
+                }
+            });
+            
+            toggleAxesBtn?.addEventListener('click', function() {
+                if (window.modelScene) {
+                    const visible = window.modelScene.toggleAxes();
+                    toggleAxesBtn.classList.toggle('btn-primary', visible);
+                    toggleAxesBtn.classList.toggle('btn-secondary', !visible);
+                }
+            });
+            
+            // Transform mode selection
+            transformModeSelect?.addEventListener('change', function() {
+                if (window.modelScene) {
+                    window.modelScene.setTransformMode(this.value);
+                    console.log('Transform mode:', this.value);
+                }
+            });
+            
+            addComponentBtn?.addEventListener('click', function() {
+                const componentType = document.getElementById('componentType').value;
+                
+                if (!componentType) {
+                    alert('Please select a component type');
+                    return;
+                }
+                
+                if (!window.modelScene) {
+                    alert('Please switch to 3D view first');
+                    return;
+                }
+                
+                // Random position for demo
+                const randomPos = {
+                    x: Math.random() * 400 - 200,
+                    y: 50,
+                    z: Math.random() * 400 - 200
+                };
+                
+                // Check if it's a mounting surface
+                if (['plate', 'box', 'shelf', 'din-rail'].includes(componentType)) {
+                    const dimensions = {};
+                    
+                    if (componentType === 'plate') {
+                        dimensions.width = 600;
+                        dimensions.length = 400;
+                        dimensions.thickness = 2;
+                    } else if (componentType === 'box') {
+                        dimensions.width = 400;
+                        dimensions.length = 600;
+                        dimensions.height = 300;
+                        dimensions.wallThickness = 2;
+                    } else if (componentType === 'shelf') {
+                        dimensions.wallWidth = 400;
+                        dimensions.wallHeight = 300;
+                        dimensions.shelfDepth = 200;
+                        dimensions.thickness = 2;
+                    } else if (componentType === 'din-rail') {
+                        dimensions.length = 500;
+                    }
+                    
+                    window.modelScene.addMountingSurface(componentType, dimensions);
+                    alert(`Added ${componentType} mounting surface`);
+                }
+                // Check if it's a field device
+                else if (['button', 'motor', 'led'].includes(componentType)) {
+                    const options = {};
+                    
+                    if (componentType === 'button') {
+                        options.color = 0xff0000; // Red
+                        options.buttonType = 'momentary';
+                    } else if (componentType === 'motor') {
+                        options.power = 1500;
+                    } else if (componentType === 'led') {
+                        options.color = 'green';
+                    }
+                    
+                    const device = window.modelScene.addFieldDevice(componentType, randomPos, options);
+                    alert(`Added ${componentType} at position (${randomPos.x.toFixed(0)}, ${randomPos.y}, ${randomPos.z.toFixed(0)})`);
+                }
+                // Otherwise it's a PLC component
+                else {
+                    const component = window.modelScene.addPLCComponent(componentType, randomPos);
+                    alert(`Added ${componentType} at position (${randomPos.x.toFixed(0)}, ${randomPos.y}, ${randomPos.z.toFixed(0)})`);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 
