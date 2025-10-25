@@ -187,11 +187,23 @@ function drawComponent(component) {
             break;
     }
     
-    // Draw label if assigned
+    // Draw label if assigned — place it adaptively based on component height
     if (component.label) {
         ctx.font = '10px sans-serif';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(component.label, cellCenter.x, pos.y + CONFIG.grid.cellSize - 5);
+        ctx.textAlign = 'center'; // Fix: ensure label is center-aligned
+        ctx.textBaseline = 'middle';
+
+        // Determine how many grid rows this component occupies. Default = 1.
+        const heightCells = (component.type === 'TON' || component.type === 'TOF' || component.type === 'TP') ? 2 : 1;
+
+        // Label should appear in the row immediately after the component block.
+        // For heightCells=1 => label in row 2 (indexing from 1), center at 1.5*cellSize from top
+        // For heightCells=2 => label in row 3, center at 2.5*cellSize from top
+        const labelRowIndex = heightCells + 1; // 2 or 3
+        const labelCenterY = pos.y + CONFIG.grid.cellSize * (labelRowIndex - 0.5);
+
+        ctx.fillText(component.label, cellCenter.x, labelCenterY);
     }
 }
 
@@ -252,51 +264,91 @@ function drawCoil(ctx, center, color) {
 
 function drawTimer(ctx, center, type, color, component) {
     const width = 40;
-    const height = 35;
+    const cellSize = CONFIG.grid.cellSize;
+    const height = cellSize * 2 - 10; // Spans 2 cells (minus padding)
+    
+    // Timer occupies current cell and cell below
+    // Adjust center to be at top cell's center
+    const topCellCenter = center.y;
+    const blockCenter = topCellCenter + cellSize / 2; // Center of the 2-cell block
     
     // Draw box
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 2;
     
-    // Box around timer
+    // Box around timer (spans 2 cells vertically)
     ctx.beginPath();
-    ctx.rect(center.x - width/2, center.y - height/2, width, height);
+    ctx.rect(center.x - width/2, topCellCenter - cellSize/4, width, height);
     ctx.stroke();
     
-    // Timer type text
-    ctx.font = 'bold 12px sans-serif';
+    // Timer type text (top section)
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(type, center.x, center.y - 5);
+    ctx.fillText(type, center.x, topCellCenter + 5);
     
-    // Show timer state
+    // Show preset value below the type (in top cell)
+    if (component.preset) {
+        ctx.font = '8px sans-serif';
+        const presetText = `PT:${(component.preset / 1000).toFixed(1)}s`;
+        ctx.fillText(presetText, center.x, topCellCenter + 18);
+    }
+    
+    // Show timer state (elapsed time directly below PT in top cell)
     const timer = state.diagram.timers.find(t => t.id === component.id);
     if (timer) {
         ctx.font = '8px sans-serif';
-        const timeText = `${(timer.elapsed / 1000).toFixed(1)}s`;
-        ctx.fillText(timeText, center.x, center.y + 8);
-        
+        const timeText = `ET:${(timer.elapsed / 1000).toFixed(1)}s`;
+        // Place elapsed time below PT (in top cell)
+        ctx.fillText(timeText, center.x, topCellCenter + 28);
+
         // Show done indicator
         if (timer.done) {
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
-            ctx.arc(center.x + width/2 - 5, center.y - height/2 + 5, 3, 0, Math.PI * 2);
+            ctx.arc(center.x + width/2 - 5, topCellCenter - cellSize/4 + 5, 3, 0, Math.PI * 2);
             ctx.fill();
+            ctx.fillStyle = color; // Reset color
         }
     }
     
-    // Draw connections (horizontal lines for current flow)
+    // Draw input connection (top left - IN)
     ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(center.x - width, center.y);
-    ctx.lineTo(center.x - width/2, center.y);
+    ctx.moveTo(center.x - width, topCellCenter);
+    ctx.lineTo(center.x - width/2, topCellCenter);
     ctx.stroke();
     
+    // Draw output connection (top right - Q)
     ctx.beginPath();
-    ctx.moveTo(center.x + width/2, center.y);
-    ctx.lineTo(center.x + width, center.y);
+    ctx.moveTo(center.x + width/2, topCellCenter);
+    ctx.lineTo(center.x + width, topCellCenter);
     ctx.stroke();
+    
+    // Draw RESET pin (bottom left)
+    const resetY = topCellCenter + cellSize;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(center.x - width, resetY);
+    ctx.lineTo(center.x - width/2, resetY);
+    ctx.stroke();
+    
+    // Label for RESET pin
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('R', center.x - width/2 + 3, resetY);
+    
+    // Check if reset pin has current flow
+    if (component.resetHasFlow) {
+        ctx.strokeStyle = COMPONENT_TYPES[type].activeColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(center.x - width, resetY);
+        ctx.lineTo(center.x - width/2, resetY);
+        ctx.stroke();
+    }
 }
 
 function drawHorizontalWire(ctx, center, color) {

@@ -44,7 +44,8 @@ const COMPONENT_TYPES = {
         color: '#9C27B0',        // Purple
         activeColor: '#4CAF50',
         isTimer: true,
-        isFunctionBlock: true  // Function block, not a simple contact
+        isFunctionBlock: true,  // Function block, not a simple contact
+        gridSize: { width: 1, height: 2 }  // Occupies 1 column x 2 rows
     },
     TOF: {
         name: 'Timer Off-Delay',
@@ -52,7 +53,8 @@ const COMPONENT_TYPES = {
         color: '#9C27B0',
         activeColor: '#4CAF50',
         isTimer: true,
-        isFunctionBlock: true
+        isFunctionBlock: true,
+        gridSize: { width: 1, height: 2 }  // Occupies 1 column x 2 rows
     },
     TP: {
         name: 'Timer Pulse',
@@ -60,7 +62,8 @@ const COMPONENT_TYPES = {
         color: '#9C27B0',
         activeColor: '#4CAF50',
         isTimer: true,
-        isFunctionBlock: true
+        isFunctionBlock: true,
+        gridSize: { width: 1, height: 2 }  // Occupies 1 column x 2 rows
     },
     HORIZONTAL_WIRE: {
         name: 'Horizontal Wire',

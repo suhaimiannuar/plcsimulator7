@@ -4,19 +4,39 @@
 function placeComponent(gridPos) {
     saveHistory(); // Save state before placing component
     
-    // Check if cell is occupied
-    const existing = getComponentAt(gridPos.x, gridPos.y);
-    if (existing) {
-        // Replace existing component
-        const index = state.diagram.components.indexOf(existing);
-        if (index > -1) {
-            state.diagram.components.splice(index, 1);
-            
-            // Remove from inputs/outputs if applicable
-            state.diagram.inputs = state.diagram.inputs.filter(i => !i.componentIds.includes(existing.id));
-            state.diagram.outputs = state.diagram.outputs.filter(o => !o.componentIds.includes(existing.id));
+    const typeInfo = COMPONENT_TYPES[state.ui.selectedComponentType];
+    const gridSize = typeInfo.gridSize || { width: 1, height: 1 };
+    
+    // Check if all required cells are available for multi-cell components
+    const cellsToCheck = [];
+    for (let dy = 0; dy < gridSize.height; dy++) {
+        for (let dx = 0; dx < gridSize.width; dx++) {
+            const checkX = gridPos.x + dx;
+            const checkY = gridPos.y + dy;
+            // Check if cell is within bounds
+            if (checkY >= CONFIG.grid.rows) {
+                alert('Component does not fit in grid (exceeds bottom boundary)');
+                return;
+            }
+            cellsToCheck.push({ x: checkX, y: checkY });
         }
     }
+    
+    // Remove existing components in all required cells
+    cellsToCheck.forEach(cell => {
+        const existing = getComponentAt(cell.x, cell.y);
+        if (existing) {
+            const index = state.diagram.components.indexOf(existing);
+            if (index > -1) {
+                state.diagram.components.splice(index, 1);
+                
+                // Remove from inputs/outputs if applicable
+                state.diagram.inputs = state.diagram.inputs.filter(i => !i.componentIds.includes(existing.id));
+                state.diagram.outputs = state.diagram.outputs.filter(o => !o.componentIds.includes(existing.id));
+                state.diagram.timers = state.diagram.timers.filter(t => t.id !== existing.id);
+            }
+        }
+    });
     
     // Create component
     const component = {
@@ -26,12 +46,14 @@ function placeComponent(gridPos) {
         pin: null,
         label: '',
         state: false,
-        metadata: {}
+        metadata: {},
+        gridSize: gridSize  // Store grid size in component
     };
     
-    // For timers, add preset time (default 1000ms = 1s)
+    // For timers, add preset time and reset flow tracking
     if (component.type === 'TON' || component.type === 'TOF' || component.type === 'TP') {
         component.preset = 1000; // Default 1 second
+        component.resetHasFlow = false; // Track reset pin current flow
     }
     
     state.diagram.components.push(component);
@@ -40,7 +62,6 @@ function placeComponent(gridPos) {
     state.ui.selectedComponent = component;
     
     // If it's a timer (function block), prompt for configuration
-    const typeInfo = COMPONENT_TYPES[component.type];
     if (typeInfo.isFunctionBlock) {
         openTimerConfigModal(component);
     }
@@ -89,7 +110,12 @@ function selectComponent(gridPos) {
 }
 
 function getComponentAt(x, y) {
-    return state.diagram.components.find(c => c.position.x === x && c.position.y === y);
+    // Check if position matches component or falls within its grid size
+    return state.diagram.components.find(c => {
+        const gridSize = c.gridSize || { width: 1, height: 1 };
+        return x >= c.position.x && x < c.position.x + gridSize.width &&
+               y >= c.position.y && y < c.position.y + gridSize.height;
+    });
 }
 
 function generateId() {

@@ -4,47 +4,448 @@
     "description": "Delayed output using TON timer",
     "created": "2025-10-22T00:00:00.000Z"
   },
+  "grid": {
+    "rows": 15,
+    "columns": 18,
+    "cellSize": 50,
+    "railWidth": 30
+  },
   "components": [
     {
       "id": "comp_1",
       "type": "NO_CONTACT",
-      "position": {"x": 2, "y": 2},
+      "position": {
+        "x": 2,
+        "y": 2
+      },
       "pin": "I1",
       "label": "START",
-      "state": false
+      "state": false,
+      "hasCurrentFlow": false
     },
     {
       "id": "comp_2",
       "type": "HORIZONTAL_WIRE",
-      "position": {"x": 4, "y": 2},
+      "position": {
+        "x": 4,
+        "y": 2
+      },
       "pin": null,
       "label": "",
-      "state": false
+      "state": false,
+      "hasCurrentFlow": false
     },
     {
       "id": "comp_3",
       "type": "TON",
-      "position": {"x": 7, "y": 2},
+      "position": {
+        "x": 7,
+        "y": 2
+      },
       "pin": null,
       "label": "Delay 2s",
       "state": false,
-      "preset": 2000
+      "preset": 2000,
+      "hasCurrentFlow": false,
+      "resetHasFlow": false
     },
     {
       "id": "comp_4",
       "type": "HORIZONTAL_WIRE",
-      "position": {"x": 10, "y": 2},
+      "position": {
+        "x": 10,
+        "y": 2
+      },
       "pin": null,
       "label": "",
-      "state": false
+      "state": false,
+      "hasCurrentFlow": false
     },
     {
       "id": "comp_5",
       "type": "OUTPUT_COIL",
-      "position": {"x": 12, "y": 2},
+      "position": {
+        "x": 12,
+        "y": 2
+      },
       "pin": "Q1",
       "label": "MOTOR",
-      "state": false
+      "state": false,
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362473300_q1ytswrhh",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362473667_edhd0ewp1",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 1,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362474276_gvx5cg8kc",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362474801_hzji08ct3",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 5,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362475351_3ngxli9hh",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 6,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362475905_tsw4f3fnc",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 8,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362476586_7m43h644y",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 9,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362477043_oaty820bw",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 11,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362477693_1c1jqoic9",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 13,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362478010_s39r2w28i",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 14,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362478581_tj8ne2nfc",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 15,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362478897_olwupjyxl",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 16,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362479422_xxye9zu96",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 17,
+        "y": 2
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362501311_mb6i6ky4j",
+      "type": "NO_CONTACT",
+      "position": {
+        "x": 2,
+        "y": 5
+      },
+      "pin": "I2",
+      "label": "RESET",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362507728_4pwmazul1",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 0,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362508196_sylozk0br",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 1,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362508813_n37a1qnf4",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 3,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362512840_jbufpnja8",
+      "type": "CORNER_UP_RIGHT",
+      "position": {
+        "x": 6,
+        "y": 3
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362516483_n29gbq1lv",
+      "type": "CORNER_DOWN_LEFT",
+      "position": {
+        "x": 6,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362518290_3zm2rfiql",
+      "type": "VERTICAL_WIRE",
+      "position": {
+        "x": 6,
+        "y": 4
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362520006_yub4pz5kl",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 4,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
+    },
+    {
+      "id": "comp_1761362520423_uzdy1by5z",
+      "type": "HORIZONTAL_WIRE",
+      "position": {
+        "x": 5,
+        "y": 5
+      },
+      "pin": null,
+      "label": "",
+      "state": false,
+      "metadata": {},
+      "gridSize": {
+        "width": 1,
+        "height": 1
+      },
+      "hasCurrentFlow": false
     }
   ],
   "inputs": [
@@ -54,7 +455,19 @@
       "label": "START",
       "type": "DIGITAL",
       "state": false,
-      "componentIds": ["comp_1"]
+      "componentIds": [
+        "comp_1"
+      ]
+    },
+    {
+      "id": "comp_1761362505979_08cfa8r3i",
+      "pin": "I2",
+      "label": "RESET",
+      "type": "DIGITAL",
+      "state": false,
+      "componentIds": [
+        "comp_1761362501311_mb6i6ky4j"
+      ]
     }
   ],
   "outputs": [
@@ -64,9 +477,12 @@
       "label": "MOTOR",
       "type": "DIGITAL",
       "state": false,
-      "componentIds": ["comp_5"]
+      "componentIds": [
+        "comp_5"
+      ]
     }
   ],
+  "feedbacks": [],
   "timers": [
     {
       "id": "comp_3",

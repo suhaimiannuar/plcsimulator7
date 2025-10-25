@@ -116,6 +116,22 @@ function initializeTimers() {
 /**
  * Update all timers based on scan cycle
  */
+/**
+ * Check if reset pin of a timer has current flow
+ * Reset pin is at position (x, y+1) - bottom left of the 2-cell timer block
+ */
+function checkResetPinFlow(timerComponent) {
+    const resetX = timerComponent.position.x;
+    const resetY = timerComponent.position.y + 1;
+    
+    // Check if there's a component to the left of the reset pin that has current flow
+    const leftComponent = state.diagram.components.find(c => 
+        c.position.x === resetX - 1 && c.position.y === resetY
+    );
+    
+    return leftComponent && leftComponent.hasCurrentFlow;
+}
+
 function updateTimers() {
     const deltaMs = state.simulation.scanCycleMs * state.simulation.speedMultiplier;
     
@@ -123,8 +139,21 @@ function updateTimers() {
         const component = state.diagram.components.find(c => c.id === timer.id);
         if (!component) return;
         
-        // Get input state (whether component has current flow to it)
+        // Get input state (whether component has current flow to it on top input)
         const inputActive = component.hasCurrentFlow || false;
+        
+        // Check if reset pin has current flow (bottom left pin at position.y + 1)
+        const resetActive = checkResetPinFlow(component);
+        component.resetHasFlow = resetActive;
+        
+        // If reset is active, reset the timer
+        if (resetActive) {
+            timer.running = false;
+            timer.elapsed = 0;
+            timer.done = false;
+            component.state = false;
+            return; // Skip normal timer logic when resetting
+        }
         
         switch (timer.type) {
             case 'TON': // On-Delay: Turns on after input is on for preset time
