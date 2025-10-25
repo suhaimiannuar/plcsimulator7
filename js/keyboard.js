@@ -50,6 +50,37 @@ function handleKeyboardShortcuts(e) {
         deleteSelectedComponent();
         return;
     }
+    
+    // ESC: Deselect component and deactivate tool
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        deselectAndDeactivate();
+        return;
+    }
+}
+
+function deselectAndDeactivate() {
+    // Deselect any selected component
+    state.ui.selectedComponent = null;
+    
+    // Deactivate any selected component type (return to select mode)
+    state.ui.selectedComponentType = null;
+    state.ui.mode = 'select';
+    
+    // Remove active state from all component buttons
+    document.querySelectorAll('.component-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Activate select tool button
+    elements.selectToolBtn.classList.add('active');
+    elements.deleteToolBtn.classList.remove('active');
+    
+    // Update UI
+    renderGrid();
+    updateUI();
+    
+    console.log('Component deselected and tool deactivated');
 }
 
 function copyComponent() {
