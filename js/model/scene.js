@@ -36,6 +36,10 @@ class ModelScene {
         this.transformControls = null;
         this.transformMode = 'translate'; // 'translate', 'rotate', 'scale'
         
+        // Magnetic snapping
+        this.magneticSnapEnabled = true;
+        this.snapDistance = 50; // Distance within which magnetic snap activates (mm)
+        
         this.init();
     }
     
@@ -68,7 +72,10 @@ class ModelScene {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        container.appendChild(this.renderer.domElement);
+    // Ensure container is positioned so overlays (view cube, UI) can be absolute inside it
+    if (!container.style.position) container.style.position = 'relative';
+    this.renderer.domElement.id = 'modelCanvas';
+    container.appendChild(this.renderer.domElement);
         
         console.log('Renderer created with size:', width, 'x', height);
         
@@ -102,7 +109,106 @@ class ModelScene {
                 if (this.controls) {
                     this.controls.enabled = !event.value;
                 }
+                
+                // On drag end, validate final position
+                if (!event.value && this.transformControls.object) {
+                    const attachedObj = this.transformControls.object;
+                    const component = attachedObj.userData.component || attachedObj.userData.mounting;
+                    
+                    if (component && component.dimensions && !component.snapPoints) {
+                        const collision = this.checkComponentCollision(
+                            {
+                                x: attachedObj.position.x,
+                                y: attachedObj.position.y,
+                                z: attachedObj.position.z
+                            },
+                            component.dimensions,
+                            component
+                        );
+                        
+                        if (collision.collides) {
+                            alert(collision.reason + '\nComponent will be reverted to previous position.');
+                            
+                            // Revert to stored position
+                            if (component.position) {
+                                attachedObj.position.set(
+                                    component.position.x,
+                                    component.position.y,
+                                    component.position.z
+                                );
+                            }
+                        } else {
+                            // Update component position
+                            component.position.x = attachedObj.position.x;
+                            component.position.y = attachedObj.position.y;
+                            component.position.z = attachedObj.position.z;
+                        }
+                        
+                        // Reset visual feedback
+                        attachedObj.traverse((child) => {
+                            if (child.material && child.userData.originalColor) {
+                                child.material.color.copy(child.userData.originalColor);
+                                child.material.opacity = 1.0;
+                                child.material.transparent = false;
+                            }
+                        });
+                    }
+                }
             });
+            
+            // Add magnetic snapping on drag - use 'change' event instead of 'objectChange'
+            this.transformControls.addEventListener('change', () => {
+                if (this.transformControls.dragging) {
+                    // Get component from attached object's userData
+                    const attachedObj = this.transformControls.object;
+                    if (attachedObj && attachedObj.userData) {
+                        const component = attachedObj.userData.component || attachedObj.userData.mounting;
+                        if (component) {
+                            // Apply magnetic snapping if enabled
+                            if (this.magneticSnapEnabled) {
+                                this.applyMagneticSnap(component);
+                            }
+                            
+                            // Check for collisions in real-time (for non-mounting objects)
+                            if (component.dimensions && !component.snapPoints) {
+                                const collision = this.checkComponentCollision(
+                                    {
+                                        x: attachedObj.position.x,
+                                        y: attachedObj.position.y,
+                                        z: attachedObj.position.z
+                                    },
+                                    component.dimensions,
+                                    component
+                                );
+                                
+                                if (collision.collides) {
+                                    // Visual feedback: make it semi-transparent red to show collision
+                                    attachedObj.traverse((child) => {
+                                        if (child.material) {
+                                            if (!child.userData.originalColor) {
+                                                child.userData.originalColor = child.material.color.clone();
+                                            }
+                                            child.material.color.setHex(0xff0000);
+                                            child.material.opacity = 0.5;
+                                            child.material.transparent = true;
+                                        }
+                                    });
+                                } else {
+                                    // Reset color
+                                    attachedObj.traverse((child) => {
+                                        if (child.material && child.userData.originalColor) {
+                                            child.material.color.copy(child.userData.originalColor);
+                                            child.material.opacity = 1.0;
+                                            child.material.transparent = false;
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
             this.scene.add(this.transformControls);
         }
         
@@ -156,7 +262,7 @@ class ModelScene {
     }
     
     // Add mounting surface to scene
-    addMountingSurface(mountingType, dimensions) {
+    addMountingSurface(mountingType, dimensions, position = { x: 0, y: 0, z: 0 }) {
         let mounting;
         
         switch (mountingType) {
@@ -195,10 +301,40 @@ class ModelScene {
                 return null;
         }
         
+        // Compute mounting center position (for some mountings we accept bottom-left origin input)
+        let computedPos = { ...position };
+
+        // If user provided a bottom-left origin for 'box' mountings, convert to center-based position
+        if (mountingType === 'box') {
+            const w = mounting.dimensions.width;
+            const h = mounting.dimensions.height;
+            const l = mounting.dimensions.length;
+            // Interpret provided position as bottom-left corner on the ground (y = ground)
+            computedPos = {
+                x: position.x + w / 2,
+                y: position.y + h / 2,
+                z: position.z + l / 2
+            };
+        }
+
+        // Set position
+        mounting.position = { ...computedPos };
+        
+        // CHECK COLLISION with existing mountings
+        if (this.checkMountingCollision(mounting)) {
+            console.warn('❌ Cannot add mounting: Collision detected with existing mounting');
+            alert('Cannot add mounting surface here - it would collide with an existing mounting.');
+            return null;
+        }
+        
         const mesh = mounting.createMesh();
         if (mesh) {
+            mesh.position.set(mounting.position.x, mounting.position.y, mounting.position.z);
+            mesh.userData.mounting = mounting;
+            mesh.userData.interactive = true; // Make mounting surfaces selectable
             this.scene.add(mesh);
             this.mountingSurfaces.push(mounting);
+            console.log('✅ Mounting surface added:', mountingType, position);
         }
         
         return mounting;
@@ -206,23 +342,64 @@ class ModelScene {
     
     // Add PLC component to scene
     addPLCComponent(componentType, position = { x: 0, y: 0, z: 0 }) {
+        // VALIDATE: Check if mounting surface exists
+    const validation = this.canAddComponent(position, componentType);
+        if (!validation.valid) {
+            console.warn('❌ Cannot add component:', validation.reason);
+            alert(validation.reason);
+            return null;
+        }
+        
+        // Snap position to mounting surface
+        const snapPoint = validation.snapPoint;
+        const snappedPosition = {
+            x: snapPoint.x,
+            y: snapPoint.y,
+            z: snapPoint.z
+        };
+        
+        // Determine component dimensions (used for snapping/alignment)
+        let compDims = { width: 50, height: 50, depth: 50 };
+        switch (componentType) {
+            case 'power-supply': compDims = { width: 54, height: 90, depth: 65 }; break;
+            case 'cpu': compDims = { width: 100, height: 100, depth: 75 }; break;
+            case 'digital-input':
+            case 'digital-output': compDims = { width: 36, height: 90, depth: 65 }; break;
+            case 'terminal-block': compDims = { width: 20, height: 50, depth: 40 }; break;
+            default: compDims = { width: 50, height: 50, depth: 50 };
+        }
+        
+        // Adjust Y position to sit ON the surface (not inside it)
+        snappedPosition.y = snapPoint.y + compDims.height / 2;
+        
+        // Check for collisions
+        const collision = this.checkComponentCollision(snappedPosition, compDims);
+        if (collision.collides) {
+            console.warn('❌ Cannot add component:', collision.reason);
+            alert(collision.reason);
+            return null;
+        }
+
         // Create simple component object (no class needed)
         const component = {
             id: `plc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: componentType,
             name: this.getComponentName(componentType),
-            position: { ...position },
+            position: { ...snappedPosition },
+            dimensions: compDims,
             rotation: { x: 0, y: 0, z: 0 },
             scale: 1,
             state: false,
-            terminals: []
+            terminals: [],
+            mountingSurface: validation.mounting,
+            snapPoint: snapPoint
         };
         
         // Create mesh based on type
         const mesh = this.createComponentMesh(componentType, component);
         
         if (mesh) {
-            mesh.position.set(position.x, position.y, position.z);
+            mesh.position.set(snappedPosition.x, snappedPosition.y, snappedPosition.z);
             mesh.userData.component = component;
             mesh.userData.interactive = true;
             component.mesh = mesh;
@@ -230,8 +407,13 @@ class ModelScene {
             this.scene.add(mesh);
             this.plcComponents.push(component);
             
+            // Attach to mounting surface
+            validation.mounting.attachComponent(component, snapPoint);
+            
             // Try to load STEP model if available
             this.tryLoadStepModel(component, componentType);
+            
+            console.log('✅ Component added and snapped to mounting:', component.name);
         }
         
         return component;
@@ -239,15 +421,54 @@ class ModelScene {
     
     // Add field device to scene (button, motor, LED)
     addFieldDevice(deviceType, position = { x: 0, y: 0, z: 0 }, options = {}) {
+        // VALIDATE: Check if mounting surface exists
+    const validation = this.canAddComponent(position, deviceType);
+        if (!validation.valid) {
+            console.warn('❌ Cannot add device:', validation.reason);
+            alert(validation.reason);
+            return null;
+        }
+        
+        // Snap position to mounting surface
+        const snapPoint = validation.snapPoint;
+        const snappedPosition = {
+            x: snapPoint.x,
+            y: snapPoint.y,
+            z: snapPoint.z
+        };
+        
+        // Determine device dimensions for snapping
+        let devDims = { width: 20, height: 20, depth: 20 };
+        switch (deviceType) {
+            case 'button': devDims = { width: 15, height: 30, depth: 15 }; break;
+            case 'motor': devDims = { width: 100, height: 40, depth: 100 }; break;
+            case 'led': devDims = { width: 10, height: 25, depth: 10 }; break;
+            default: devDims = { width: 20, height: 20, depth: 20 };
+        }
+        
+        // Adjust Y position to sit ON the surface
+        snappedPosition.y = snapPoint.y + devDims.height / 2;
+        
+        // Check for collisions
+        const collision = this.checkComponentCollision(snappedPosition, devDims);
+        if (collision.collides) {
+            console.warn('❌ Cannot add device:', collision.reason);
+            alert(collision.reason);
+            return null;
+        }
+        
         // Create simple device object
         const device = {
             id: `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: deviceType,
             name: options.name || this.getComponentName(deviceType),
-            position: { ...position },
+            position: { ...snappedPosition },
+            dimensions: devDims,
             rotation: { x: 0, y: 0, z: 0 },
             scale: 1,
             state: false,
+            mountingSurface: validation.mounting,
+            snapPoint: snapPoint,
             color: options.color || 0xff0000,
             buttonType: options.buttonType || 'momentary',
             power: options.power || 1500,
@@ -277,13 +498,16 @@ class ModelScene {
         const mesh = this.createComponentMesh(deviceType, device);
         
         if (mesh) {
-            mesh.position.set(position.x, position.y, position.z);
+            mesh.position.set(snappedPosition.x, snappedPosition.y, snappedPosition.z);
             mesh.userData.component = device;
             mesh.userData.interactive = true;
             device.mesh = mesh;
             
             this.scene.add(mesh);
             this.fieldDevices.push(device);
+            
+            // Attach to mounting surface
+            validation.mounting.attachComponent(device, snapPoint);
             
             // Register with assignment manager
             if (typeof assignmentManager !== 'undefined') {
@@ -292,6 +516,8 @@ class ModelScene {
             
             // Try to load STEP model if available
             this.tryLoadStepModel(device, deviceType);
+            
+            console.log('✅ Device added and snapped to mounting:', device.name);
         }
         
         return device;
@@ -578,7 +804,10 @@ class ModelScene {
         if (mesh && this.transformControls) {
             this.transformControls.attach(mesh);
             this.selectedObject = mesh;
-            console.log('Component selected for transformation:', component.name || component.type);
+            
+            // Check if it's a mounting surface
+            const isMounting = !!component.snapPoints;
+            console.log('Selected:', component.name || component.type, isMounting ? '(Mounting Surface)' : '(Component)');
         }
         
         // Update property editor if exists
@@ -773,6 +1002,322 @@ class ModelScene {
         return wire;
     }
     
+    // ===== MOUNTING VALIDATION SYSTEM =====
+    
+    // Check if any mounting surface exists
+    hasMountingSurface() {
+        return this.mountingSurfaces.length > 0;
+    }
+    
+    // Check if two mountings collide
+    checkMountingCollision(newMounting) {
+        for (const existing of this.mountingSurfaces) {
+            if (this.mountingsIntersect(existing, newMounting)) {
+                return true; // Collision detected
+            }
+        }
+        return false;
+    }
+    
+    // Check if two mounting surfaces intersect
+    mountingsIntersect(mount1, mount2) {
+        // Get bounding boxes for both mountings
+        const box1 = this.getMountingBoundingBox(mount1);
+        const box2 = this.getMountingBoundingBox(mount2);
+        
+        return box1.intersectsBox(box2);
+    }
+    
+    // Get bounding box for mounting surface
+    getMountingBoundingBox(mounting) {
+        const pos = mounting.position;
+        const dims = mounting.dimensions;
+        
+        let min, max;
+        
+        switch(mounting.type) {
+            case 'plate':
+                min = new THREE.Vector3(
+                    pos.x - dims.width / 2,
+                    pos.y - dims.thickness / 2,
+                    pos.z - dims.length / 2
+                );
+                max = new THREE.Vector3(
+                    pos.x + dims.width / 2,
+                    pos.y + dims.thickness / 2,
+                    pos.z + dims.length / 2
+                );
+                break;
+                
+            case 'box':
+                min = new THREE.Vector3(
+                    pos.x - dims.width / 2,
+                    pos.y - dims.height / 2,
+                    pos.z - dims.length / 2
+                );
+                max = new THREE.Vector3(
+                    pos.x + dims.width / 2,
+                    pos.y + dims.height / 2,
+                    pos.z + dims.length / 2
+                );
+                break;
+                
+            case 'shelf':
+                min = new THREE.Vector3(
+                    pos.x - dims.wallWidth / 2,
+                    pos.y - dims.wallHeight / 2,
+                    pos.z - dims.thickness / 2
+                );
+                max = new THREE.Vector3(
+                    pos.x + dims.wallWidth / 2,
+                    pos.y + dims.wallHeight / 2,
+                    pos.z + dims.shelfDepth + dims.thickness / 2
+                );
+                break;
+                
+            case 'din-rail':
+                min = new THREE.Vector3(
+                    pos.x - dims.width / 2,
+                    pos.y - dims.height / 2,
+                    pos.z - dims.length / 2
+                );
+                max = new THREE.Vector3(
+                    pos.x + dims.width / 2,
+                    pos.y + dims.height / 2,
+                    pos.z + dims.length / 2
+                );
+                break;
+                
+            default:
+                min = new THREE.Vector3(pos.x, pos.y, pos.z);
+                max = new THREE.Vector3(pos.x, pos.y, pos.z);
+        }
+        
+        return new THREE.Box3(min, max);
+    }
+    
+    // Find nearest mounting surface for a component
+    findNearestMounting(position) {
+        if (this.mountingSurfaces.length === 0) {
+            return null;
+        }
+        
+        let nearest = null;
+        let minDist = Infinity;
+        
+        for (const mounting of this.mountingSurfaces) {
+            const snapPoint = this.getNearestSnapPoint(mounting, position);
+            if (snapPoint) {
+                const dist = this.distance3D(position, snapPoint);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = { mounting, snapPoint, distance: dist };
+                }
+            }
+        }
+        
+        return nearest;
+    }
+    
+    // Get nearest snap point on a mounting surface
+    getNearestSnapPoint(mounting, position) {
+        if (mounting.findNearestSnapPoint) {
+            return mounting.findNearestSnapPoint(position);
+        }
+        
+        const snapPoints = mounting.getSurfacePoints();
+        if (!snapPoints || snapPoints.length === 0) {
+            return null;
+        }
+        
+        let nearest = null;
+        let minDist = Infinity;
+        
+        for (const snap of snapPoints) {
+            const dist = this.distance3D(position, snap);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = snap;
+            }
+        }
+        
+        return nearest;
+    }
+    
+    // Calculate 3D distance between two points
+    distance3D(p1, p2) {
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dz = p1.z - p2.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+    
+    // Validate if component can be added (must have mounting)
+    canAddComponent(position, componentType = null) {
+        if (!this.hasMountingSurface()) {
+            return {
+                valid: false,
+                reason: 'No mounting surface available. Please add a mounting surface first.'
+            };
+        }
+        
+        const nearestMount = this.findNearestMounting(position);
+        if (!nearestMount) {
+            return {
+                valid: false,
+                reason: 'No suitable mounting surface found at this position.'
+            };
+        }
+        
+        // Enforce mounting-type specific surface rules
+        const mountType = nearestMount.mounting.type;
+        const snap = nearestMount.snapPoint || {};
+
+        // Plate: only top/floor (normal.y === 1)
+        if (mountType === 'plate') {
+            if (!snap.normal || snap.normal.y !== 1) {
+                return { valid: false, reason: 'Components can only be mounted on the top surface of a plate.' };
+            }
+        }
+
+        // Box: allow bottom (floor) and walls (snap.surface defined)
+        if (mountType === 'box') {
+            if (!snap.surface && snap.normal && snap.normal.y !== 1) {
+                return { valid: false, reason: 'Cannot mount on this area of the box.' };
+            }
+        }
+
+        // Shelf: allow wall and shelf surfaces
+        if (mountType === 'shelf') {
+            if (!snap.surface || (snap.surface !== 'wall' && snap.surface !== 'shelf')) {
+                return { valid: false, reason: 'Shelf mountings accept components on the wall and shelf surfaces only.' };
+            }
+        }
+
+        // DIN rail: restrict to PLC modules / terminal blocks and require alignment
+        if (mountType === 'din-rail') {
+            const allowed = ['power-supply', 'cpu', 'digital-input', 'digital-output', 'terminal-block'];
+            if (componentType && allowed.indexOf(componentType) === -1) {
+                return { valid: false, reason: 'This type of component must be mounted on a DIN rail (PLC modules only).' };
+            }
+        }
+
+        // Check if snap distance is reasonable (within 200 units)
+        if (nearestMount.distance > 200) {
+            return {
+                valid: false,
+                reason: 'Position too far from mounting surface. Move closer to snap.'
+            };
+        }
+        
+        return {
+            valid: true,
+            mounting: nearestMount.mounting,
+            snapPoint: nearestMount.snapPoint
+        };
+    }
+    
+    // Check if component would collide with mounting surface or other components
+    checkComponentCollision(position, dimensions, excludeComponent = null) {
+        const bbox = new THREE.Box3(
+            new THREE.Vector3(
+                position.x - dimensions.width / 2,
+                position.y - dimensions.height / 2,
+                position.z - dimensions.depth / 2
+            ),
+            new THREE.Vector3(
+                position.x + dimensions.width / 2,
+                position.y + dimensions.height / 2,
+                position.z + dimensions.depth / 2
+            )
+        );
+        
+        // Check collision with mounting surfaces
+        for (const mounting of this.mountingSurfaces) {
+            const mountBBox = this.getMountingBoundingBox(mounting);
+            
+            if (mounting.type === 'box') {
+                // For BOX: component must be INSIDE the box, not intersecting walls
+                const dims = mounting.dimensions;
+                const pos = mounting.position;
+                const wallThickness = dims.wallThickness || 2;
+                
+                // Define interior bounds (inside the walls)
+                const interiorMin = new THREE.Vector3(
+                    pos.x - dims.width / 2 + wallThickness,
+                    pos.y - dims.height / 2 + wallThickness,
+                    pos.z - dims.length / 2 + wallThickness
+                );
+                const interiorMax = new THREE.Vector3(
+                    pos.x + dims.width / 2 - wallThickness,
+                    pos.y + dims.height / 2,  // Open top
+                    pos.z + dims.length / 2 - wallThickness
+                );
+                const interiorBox = new THREE.Box3(interiorMin, interiorMax);
+                
+                // Check if component is FULLY inside the interior
+                if (!interiorBox.containsBox(bbox)) {
+                    // Component is outside or intersecting walls
+                    if (bbox.intersectsBox(mountBBox)) {
+                        return {
+                            collides: true,
+                            reason: 'Component would collide with box walls. Components must be fully inside the box.'
+                        };
+                    }
+                }
+            } else if (mounting.type === 'plate') {
+                // For PLATE: component must be ON TOP (not inside)
+                if (bbox.intersectsBox(mountBBox)) {
+                    const tolerance = 5; // mm
+                    const isOnTop = Math.abs(bbox.min.y - mountBBox.max.y) < tolerance;
+                    
+                    if (!isOnTop) {
+                        return {
+                            collides: true,
+                            reason: 'Component would collide with mounting plate. Components must be on top of the surface.'
+                        };
+                    }
+                }
+            } else {
+                // For other mounting types (shelf, din-rail): basic intersection check
+                if (bbox.intersectsBox(mountBBox)) {
+                    return {
+                        collides: true,
+                        reason: 'Component would collide with mounting surface.'
+                    };
+                }
+            }
+        }
+        
+        // Check collision with other components
+        const allComponents = [...this.plcComponents, ...this.fieldDevices];
+        for (const comp of allComponents) {
+            if (comp === excludeComponent || !comp.mesh || !comp.dimensions) continue;
+            
+            const compBBox = new THREE.Box3(
+                new THREE.Vector3(
+                    comp.position.x - comp.dimensions.width / 2,
+                    comp.position.y - comp.dimensions.height / 2,
+                    comp.position.z - comp.dimensions.depth / 2
+                ),
+                new THREE.Vector3(
+                    comp.position.x + comp.dimensions.width / 2,
+                    comp.position.y + comp.dimensions.height / 2,
+                    comp.position.z + comp.dimensions.depth / 2
+                )
+            );
+            
+            if (bbox.intersectsBox(compBBox)) {
+                return {
+                    collides: true,
+                    reason: `Component would collide with ${comp.name || comp.type}.`
+                };
+            }
+        }
+        
+        return { collides: false };
+    }
+    
     // Snap component to mounting surface
     snapToMounting(component, mountingSurface, position) {
         if (mountingSurface instanceof DINRail) {
@@ -801,6 +1346,93 @@ class ModelScene {
                 component.position.z
             );
         }
+    }
+    
+    // Apply magnetic snapping to component being dragged
+    applyMagneticSnap(component) {
+        // Don't snap mounting surfaces themselves
+        if (component.snapPoints) return;
+        
+        if (!component.mesh || !component.dimensions) return;
+        
+        const currentPos = {
+            x: component.mesh.position.x,
+            y: component.mesh.position.y,
+            z: component.mesh.position.z
+        };
+        
+        // Find nearest mounting surface
+        const nearestMount = this.findNearestMounting(currentPos);
+        if (!nearestMount || nearestMount.distance > this.snapDistance) {
+            return; // Too far for magnetic snap
+        }
+        
+        const snapPoint = nearestMount.snapPoint;
+        const mounting = nearestMount.mounting;
+        
+        // Calculate snapped Y position based on mounting type
+        let snappedY = snapPoint.y + component.dimensions.height / 2;
+        
+        // For box mounting, check if we're snapping to a wall surface
+        if (mounting.type === 'box' && snapPoint.surface) {
+            if (snapPoint.surface === 'bottom') {
+                // Snap to floor
+                snappedY = snapPoint.y + component.dimensions.height / 2;
+            } else {
+                // Snapping to wall - use wall's Y coordinate
+                snappedY = snapPoint.y;
+            }
+        }
+        
+        // Apply magnetic snap with threshold
+        const snapThreshold = this.snapDistance / 2;
+        
+        let snapped = false;
+        
+        if (Math.abs(currentPos.x - snapPoint.x) < snapThreshold) {
+            component.mesh.position.x = snapPoint.x;
+            component.position.x = snapPoint.x;
+            snapped = true;
+        }
+        
+        if (Math.abs(currentPos.y - snappedY) < snapThreshold) {
+            component.mesh.position.y = snappedY;
+            component.position.y = snappedY;
+            snapped = true;
+        }
+        
+        if (Math.abs(currentPos.z - snapPoint.z) < snapThreshold) {
+            component.mesh.position.z = snapPoint.z;
+            component.position.z = snapPoint.z;
+            snapped = true;
+        }
+        
+        // Visual feedback when snapped
+        if (snapped && !component._snapFeedbackShown) {
+            component._snapFeedbackShown = true;
+            console.log(`🧲 Snapped to ${mounting.type} surface`);
+            
+            // Clear feedback flag after a moment
+            setTimeout(() => {
+                component._snapFeedbackShown = false;
+            }, 500);
+        }
+        
+        // Update property editor to show snapped position
+        if (snapped && window.propertyEditor && window.propertyEditor.selectedComponent === component) {
+            window.propertyEditor.updatePanel(component);
+        }
+    }
+    
+    // Toggle magnetic snapping on/off
+    toggleMagneticSnap(enabled = null) {
+        if (enabled === null) {
+            this.magneticSnapEnabled = !this.magneticSnapEnabled;
+        } else {
+            this.magneticSnapEnabled = enabled;
+        }
+        console.log(`Magnetic snapping: ${this.magneticSnapEnabled ? 'ON' : 'OFF'}`);
+        return this.magneticSnapEnabled;
     }
     
     // Animation loop

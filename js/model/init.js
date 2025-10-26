@@ -26,7 +26,38 @@ function initModel() {
         console.log('Property Editor initialized');
     }
     
+    // Initialize mounting UI
+    initMountingUI();
+    
+    // Add keyboard shortcut for magnetic snap toggle (M key)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'm' || e.key === 'M') {
+            if (window.modelScene) {
+                const enabled = window.modelScene.toggleMagneticSnap();
+                // Show notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: ${enabled ? '#27ae60' : '#e74c3c'};
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    z-index: 10000;
+                    font-size: 14px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                `;
+                notification.textContent = `🧲 Magnetic Snap: ${enabled ? 'ON' : 'OFF'}`;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            }
+        }
+    });
+    
     console.log('3D Model initialized');
+    console.log('💡 Press M to toggle magnetic snapping');
     
     return window.modelScene;
 }
@@ -41,63 +72,54 @@ function createExampleSetup() {
     // Clear first
     window.modelScene.clear();
     
-    // Add mounting plate
+    // Add mounting plate (REQUIRED - components cannot be added without mounting)
     const plate = window.modelScene.addMountingSurface('plate', {
         width: 800,
         length: 600,
         thickness: 2
-    });
+    }, { x: 0, y: 0, z: 0 });
     
-    // Add DIN rail on plate
-    const dinRail = window.modelScene.addMountingSurface('din-rail', {
-        length: 500
-    });
-    
-    // Position DIN rail on plate
-    if (dinRail) {
-        dinRail.position = { x: 0, y: 50, z: -100 };
-        const railMesh = window.modelScene.scene.children.find(
-            child => child.userData.mounting === dinRail
-        );
-        if (railMesh) {
-            railMesh.position.set(0, 50, -100);
-        }
+    if (!plate) {
+        console.error('Failed to create mounting surface');
+        return;
     }
     
+    // Add DIN rail on plate at y=50 (above plate surface)
+    const dinRail = window.modelScene.addMountingSurface('din-rail', {
+        length: 500
+    }, { x: 0, y: 50, z: -100 });
+    
+    console.log('✅ Mounting surfaces added');
+    
+    // Now components can be added (they will snap to mountings)
     // Add power supply
     const powerSupply = window.modelScene.addPLCComponent('power-supply', {
         x: -200,
-        y: 100,
+        y: 50,
         z: -100
     });
     
     // Add CPU
     const cpu = window.modelScene.addPLCComponent('cpu', {
-        x: -100,
-        y: 100,
+        x: -50,
+        y: 50,
         z: -100
     });
     
     // Add I/O modules
     const diModule = window.modelScene.addPLCComponent('digital-input', {
-        x: 0,
-        y: 100,
+        x: 50,
+        y: 50,
         z: -100
     });
     
     const doModule = window.modelScene.addPLCComponent('digital-output', {
-        x: 50,
-        y: 100,
+        x: 150,
+        y: 50,
         z: -100
     });
     
-    // Snap components to DIN rail
-    if (dinRail) {
-        if (powerSupply) window.modelScene.snapToMounting(powerSupply, dinRail, { x: -200, y: 0, z: -100 });
-        if (cpu) window.modelScene.snapToMounting(cpu, dinRail, { x: -100, y: 0, z: -100 });
-        if (diModule) window.modelScene.snapToMounting(diModule, dinRail, { x: 0, y: 0, z: -100 });
-        if (doModule) window.modelScene.snapToMounting(doModule, dinRail, { x: 50, y: 0, z: -100 });
-    }
+    console.log('✅ PLC components added and snapped to DIN rail');
     
     // Add field devices
     // Start button (Green)
@@ -287,6 +309,124 @@ function toggleView(viewType) {
     }
 }
 
+// Initialize mounting UI controls
+function initMountingUI() {
+    // Create mounting control panel
+    const controlPanel = document.createElement('div');
+    controlPanel.id = 'mounting-controls';
+    controlPanel.style.cssText = `
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        z-index: 1000;
+        min-width: 250px;
+    `;
+    
+    controlPanel.innerHTML = `
+        <h4 style="margin: 0 0 10px 0; color: #2c3e50;">Add Mounting Surface</h4>
+        <div style="margin-bottom: 10px;">
+            <label style="display: block; margin-bottom: 5px; font-size: 12px;">Type:</label>
+            <select id="mounting-type" style="width: 100%; padding: 5px; border-radius: 4px;">
+                <option value="plate">Plate (Floor only)</option>
+                <option value="box">Box (4 walls + floor)</option>
+                <option value="shelf">Shelf (1 wall + floor)</option>
+                <option value="din-rail">DIN Rail</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 10px;" id="dimensions-plate">
+            <label style="display: block; margin-bottom: 5px; font-size: 12px;">Width:</label>
+            <input type="number" id="mounting-width" value="400" style="width: 100%; padding: 5px; border-radius: 4px;">
+            <label style="display: block; margin: 5px 0; font-size: 12px;">Length:</label>
+            <input type="number" id="mounting-length" value="600" style="width: 100%; padding: 5px; border-radius: 4px;">
+        </div>
+        <div style="display: none; margin-bottom: 10px;" id="dimensions-box">
+            <label style="display: block; margin-bottom: 5px; font-size: 12px;">Height:</label>
+            <input type="number" id="mounting-height" value="300" style="width: 100%; padding: 5px; border-radius: 4px;">
+        </div>
+        <button id="add-mounting-btn" style="width: 100%; padding: 8px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            ➕ Add Mounting
+        </button>
+        <div style="margin-top: 10px; font-size: 11px; color: #7f8c8d;">
+            <strong>Rules:</strong><br>
+            • Components require mounting<br>
+            • Mountings cannot overlap<br>
+            • Items snap to surfaces<br>
+            <br>
+            <label style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+                <input type="checkbox" id="magneticSnapToggle" checked style="cursor: pointer;">
+                <span>🧲 Magnetic Snap (M)</span>
+            </label>
+        </div>
+    `;
+    
+    const modelContainer = document.getElementById('model-container') || document.body;
+    modelContainer.appendChild(controlPanel);
+
+    // Event listeners (use controlPanel scoped selectors to avoid collisions)
+    const typeSelect = controlPanel.querySelector('#mounting-type');
+    const addBtn = controlPanel.querySelector('#add-mounting-btn');
+    const magneticToggle = controlPanel.querySelector('#magneticSnapToggle');
+
+    // Skip if elements don't exist yet
+    if (!typeSelect || !addBtn) {
+        console.log('Mounting UI elements not found, skipping initialization');
+        return;
+    }
+    
+    // Magnetic snap toggle
+    if (magneticToggle && window.modelScene) {
+        magneticToggle.addEventListener('change', (e) => {
+            window.modelScene.toggleMagneticSnap(e.target.checked);
+        });
+    }
+
+    typeSelect.addEventListener('change', () => {
+        const plateDiv = controlPanel.querySelector('#dimensions-plate');
+        const boxDiv = controlPanel.querySelector('#dimensions-box');
+
+        if (typeSelect.value === 'box') {
+            boxDiv.style.display = 'block';
+        } else {
+            boxDiv.style.display = 'none';
+        }
+    });
+
+    addBtn.addEventListener('click', () => {
+        const type = typeSelect.value;
+        const width = parseInt(controlPanel.querySelector('#mounting-width').value);
+        const length = parseInt(controlPanel.querySelector('#mounting-length').value);
+        const height = parseInt(controlPanel.querySelector('#mounting-height').value);
+
+        let dimensions = {};
+
+        switch(type) {
+            case 'plate':
+                dimensions = { width, length, thickness: 2 };
+                break;
+            case 'box':
+                dimensions = { width, length, height, wallThickness: 2 };
+                break;
+            case 'shelf':
+                dimensions = { wallWidth: width, wallHeight: height, shelfDepth: 200, thickness: 2 };
+                break;
+            case 'din-rail':
+                dimensions = { length: length };
+                break;
+        }
+
+        // Add mounting at origin by default (bottom-left origin for box will be interpreted)
+        const mounting = window.modelScene.addMountingSurface(type, dimensions, { x: 0, y: 0, z: 0 });
+
+        if (mounting) {
+            alert(`${type.charAt(0).toUpperCase() + type.slice(1)} mounting added! You can now add components.`);
+        }
+    });
+}
+
 // Export functions
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -295,6 +435,7 @@ if (typeof module !== 'undefined' && module.exports) {
         syncLadderTo3D,
         generateAutoWiring,
         exportBOM,
-        toggleView
+        toggleView,
+        initMountingUI
     };
 }

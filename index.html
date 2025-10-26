@@ -19,6 +19,7 @@
                 <button id="clearDiagram" class="btn btn-danger">Clear</button>
                 <div style="border-left: 2px solid #555; margin: 0 10px; height: 30px;"></div>
                 <button id="viewLadder" class="btn btn-primary">📊 Ladder</button>
+                <button id="viewDrawing" class="btn btn-secondary">✏️ Drawing</button>
                 <button id="view3D" class="btn btn-secondary">🎲 3D Model</button>
             </div>
         </header>
@@ -117,6 +118,121 @@
                 </div>
                 </div>
                 <!-- End of Ladder Components -->
+
+                <!-- Drawing Components (shown in Drawing view, initially hidden) -->
+                <div id="drawing-components" class="sidebar-content" style="display: none;">
+                    <h2>Drawing Components</h2>
+                    
+                    <div class="component-category">
+                        <h3>Quick Actions</h3>
+                        <button id="clearDrawing" class="btn btn-secondary btn-block">
+                            🗑️ Clear Canvas
+                        </button>
+                        <button id="saveDrawing" class="btn btn-success btn-block">
+                            💾 Save Schematic
+                        </button>
+                        <button id="loadDrawing" class="btn btn-info btn-block">
+                            📂 Load Schematic
+                        </button>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>PLC Components</h3>
+                        <div class="component-grid">
+                            <button class="drawing-component-btn" data-component="plc">
+                                <span class="component-icon">🖥️</span>
+                                <span class="component-label">PLC</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="power-supply">
+                                <span class="component-icon">🔌</span>
+                                <span class="component-label">Power Supply</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="io-module">
+                                <span class="component-icon">📊</span>
+                                <span class="component-label">I/O Module</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Field Devices</h3>
+                        <div class="component-grid">
+                            <button class="drawing-component-btn" data-component="motor">
+                                <span class="component-icon">⚙️</span>
+                                <span class="component-label">Motor</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="sensor">
+                                <span class="component-icon">📡</span>
+                                <span class="component-label">Sensor</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="button">
+                                <span class="component-icon">🔘</span>
+                                <span class="component-label">Button</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="led">
+                                <span class="component-icon">💡</span>
+                                <span class="component-label">Indicator</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="relay">
+                                <span class="component-icon">🔄</span>
+                                <span class="component-label">Relay</span>
+                            </button>
+                            <button class="drawing-component-btn" data-component="terminal">
+                                <span class="component-icon">🔌</span>
+                                <span class="component-label">Terminal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Tools</h3>
+                        <div class="component-grid">
+                            <button class="drawing-tool-btn" data-tool="wire">
+                                <span class="component-icon">📏</span>
+                                <span class="component-label">Wire Tool</span>
+                            </button>
+                            <button class="drawing-tool-btn" data-tool="select">
+                                <span class="component-icon">👆</span>
+                                <span class="component-label">Select</span>
+                            </button>
+                            <button class="drawing-tool-btn" data-tool="delete">
+                                <span class="component-icon">❌</span>
+                                <span class="component-label">Delete</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-category">
+                        <h3>Wire Colors</h3>
+                        <div class="component-grid">
+                            <button class="wire-color-btn active" data-color="#000000" title="Black">
+                                <span class="component-icon" style="background: #000000; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">Black</span>
+                            </button>
+                            <button class="wire-color-btn" data-color="#ff0000" title="Red">
+                                <span class="component-icon" style="background: #ff0000; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">Red</span>
+                            </button>
+                            <button class="wire-color-btn" data-color="#0066ff" title="Blue">
+                                <span class="component-icon" style="background: #0066ff; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">Blue</span>
+                            </button>
+                            <button class="wire-color-btn" data-color="#00cc00" title="Green">
+                                <span class="component-icon" style="background: #00cc00; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">Green</span>
+                            </button>
+                            <button class="wire-color-btn" data-color="#ffcc00" title="Yellow">
+                                <span class="component-icon" style="background: #ffcc00; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">Yellow</span>
+                            </button>
+                            <button class="wire-color-btn" data-color="#ffffff" title="White">
+                                <span class="component-icon" style="background: #ffffff; border-radius: 50%; width: 20px; height: 20px; display: inline-block; border: 2px solid #666;"></span>
+                                <span class="component-label">White</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of Drawing Components -->
 
                 <!-- 3D Model Components (shown in 3D view, initially hidden) -->
                 <div id="model-components" class="sidebar-content" style="display: none;">
@@ -267,27 +383,17 @@
                 </div>
             </main>
 
+            <!-- 2D Drawing View (initially hidden) -->
+            <main class="drawing-workspace" style="display: none;">
+                <div id="drawing-container" style="width: 100%; height: calc(100vh - 120px); background: #ffffff; position: relative;">
+                    <!-- Drawing canvas will be inserted here -->
+                </div>
+            </main>
+
             <!-- 3D Model View (initially hidden) -->
             <main class="model-workspace" style="display: none;">
                 <div id="model-container" class="model-viewport" style="width: 100%; height: calc(100vh - 120px); background: #1e1e1e; position: relative;">
                     <!-- Three.js canvas will be inserted here -->
-                    
-                    <!-- Component Info Panel (shown on selection) -->
-                    <div id="componentInfo" style="
-                        position: absolute;
-                        top: 10px;
-                        right: 10px;
-                        background: rgba(0, 0, 0, 0.8);
-                        color: white;
-                        padding: 12px;
-                        border-radius: 4px;
-                        display: none;
-                        max-width: 250px;
-                        z-index: 100;
-                    ">
-                        <h4 id="compInfoName" style="margin: 0 0 8px 0;"></h4>
-                        <div id="compInfoDetails" style="font-size: 12px;"></div>
-                    </div>
                 </div>
             </main>
 
@@ -332,11 +438,10 @@
 
                 <!-- 3D View Panels (shown when in 3D view) -->
                 <div id="model-right-panels" style="display: none;">
-                    <!-- 3D Model Properties -->
-                    <div class="properties-panel">
-                        <h2>3D Properties</h2>
-                        <div id="model3DProperties" class="properties-content">
-                            <p class="empty-message">Select a 3D model to edit properties</p>
+                    <!-- Component Info Panel (merged from overlay) -->
+                    <div id="componentInfo" class="properties-panel" style="display: none;">
+                        <h2 id="compInfoName">Component Info</h2>
+                        <div id="compInfoDetails" class="properties-content" style="font-size: 12px;">
                         </div>
                     </div>
 
@@ -622,72 +727,24 @@
     <!-- 3D Model Initialization -->
     <script src="js/model/init.js"></script>
     
+    <!-- 2D Drawing System -->
+    <script src="js/drawing/canvas.js"></script>
+    <script src="js/drawing/init.js"></script>
+    
     <!-- View Toggle Controls -->
     <script>
         // Initialize view toggle buttons
         document.addEventListener('DOMContentLoaded', function() {
             const viewLadderBtn = document.getElementById('viewLadder');
+            const viewDrawingBtn = document.getElementById('viewDrawing');
             const view3DBtn = document.getElementById('view3D');
             
+            viewLadderBtn?.addEventListener('click', () => switchToView('ladder'));
+            viewDrawingBtn?.addEventListener('click', () => switchToView('drawing'));
+            view3DBtn?.addEventListener('click', () => switchToView('3d'));
+            
             const createExampleBtn = document.getElementById('createExample3D');
-            const autoWireBtn = document.getElementById('autoWire3D');
-            const exportBOMBtn = document.getElementById('exportBOM3D');
-            const toggleGridBtn = document.getElementById('toggleGrid3D');
-            const toggleAxesBtn = document.getElementById('toggleAxes3D');
-            const transformModeSelect = document.getElementById('transformMode3D');
             const syncLadderBtn = document.getElementById('syncLadder3D');
-            
-            // Right sidebar panels
-            const ladderRightPanels = document.getElementById('ladder-right-panels');
-            const modelRightPanels = document.getElementById('model-right-panels');
-            
-            // View toggle handlers
-            viewLadderBtn?.addEventListener('click', function() {
-                const ladderContainer = document.getElementById('ladder-container');
-                const modelWorkspace = document.querySelector('.model-workspace');
-                
-                ladderContainer.style.display = 'flex';
-                ladderContainer.style.width = '100%';
-                modelWorkspace.style.display = 'none';
-                
-                // Show ladder right panels, hide 3D panels
-                if (ladderRightPanels) ladderRightPanels.style.display = 'block';
-                if (modelRightPanels) modelRightPanels.style.display = 'none';
-                
-                viewLadderBtn.classList.add('btn-primary');
-                viewLadderBtn.classList.remove('btn-secondary');
-                view3DBtn.classList.remove('btn-primary');
-                view3DBtn.classList.add('btn-secondary');
-            });
-            
-            view3DBtn?.addEventListener('click', function() {
-                const ladderContainer = document.getElementById('ladder-container');
-                const modelWorkspace = document.querySelector('.model-workspace');
-                
-                ladderContainer.style.display = 'none';
-                modelWorkspace.style.display = 'flex';
-                modelWorkspace.style.width = '100%';
-                
-                // Show 3D right panels, hide ladder panels
-                if (ladderRightPanels) ladderRightPanels.style.display = 'none';
-                if (modelRightPanels) modelRightPanels.style.display = 'block';
-                
-                // Initialize 3D model if not already
-                if (!window.modelScene) {
-                    initModel();
-                    // Small delay to ensure container is rendered
-                    setTimeout(() => {
-                        if (window.modelScene) {
-                            window.modelScene.onWindowResize();
-                        }
-                    }, 100);
-                }
-                
-                view3DBtn.classList.add('btn-primary');
-                view3DBtn.classList.remove('btn-secondary');
-                viewLadderBtn.classList.remove('btn-primary');
-                viewLadderBtn.classList.add('btn-secondary');
-            });
             
             // 3D Model controls
             createExampleBtn?.addEventListener('click', function() {
@@ -704,110 +761,6 @@
                     alert(`Found ${result.io.inputs.length} inputs and ${result.io.outputs.length} outputs\n` +
                           `Suggested ${result.suggestions.length} components`);
                     console.table(result.suggestions);
-                }
-            });
-            
-            autoWireBtn?.addEventListener('click', function() {
-                generateAutoWiring();
-                alert('Auto-wiring generated. Check console for details.');
-            });
-            
-            exportBOMBtn?.addEventListener('click', function() {
-                const bom = exportBOM();
-                console.log('Bill of Materials:', bom);
-                alert('BOM exported to console. See browser developer console.');
-            });
-            
-            // Grid and axes toggle
-            toggleGridBtn?.addEventListener('click', function() {
-                if (window.modelScene) {
-                    const visible = window.modelScene.toggleGrid();
-                    toggleGridBtn.classList.toggle('btn-primary', visible);
-                    toggleGridBtn.classList.toggle('btn-secondary', !visible);
-                }
-            });
-            
-            toggleAxesBtn?.addEventListener('click', function() {
-                if (window.modelScene) {
-                    const visible = window.modelScene.toggleAxes();
-                    toggleAxesBtn.classList.toggle('btn-primary', visible);
-                    toggleAxesBtn.classList.toggle('btn-secondary', !visible);
-                }
-            });
-            
-            // Transform mode selection
-            transformModeSelect?.addEventListener('change', function() {
-                if (window.modelScene) {
-                    window.modelScene.setTransformMode(this.value);
-                    console.log('Transform mode:', this.value);
-                }
-            });
-            
-            addComponentBtn?.addEventListener('click', function() {
-                const componentType = document.getElementById('componentType').value;
-                
-                if (!componentType) {
-                    alert('Please select a component type');
-                    return;
-                }
-                
-                if (!window.modelScene) {
-                    alert('Please switch to 3D view first');
-                    return;
-                }
-                
-                // Random position for demo
-                const randomPos = {
-                    x: Math.random() * 400 - 200,
-                    y: 50,
-                    z: Math.random() * 400 - 200
-                };
-                
-                // Check if it's a mounting surface
-                if (['plate', 'box', 'shelf', 'din-rail'].includes(componentType)) {
-                    const dimensions = {};
-                    
-                    if (componentType === 'plate') {
-                        dimensions.width = 600;
-                        dimensions.length = 400;
-                        dimensions.thickness = 2;
-                    } else if (componentType === 'box') {
-                        dimensions.width = 400;
-                        dimensions.length = 600;
-                        dimensions.height = 300;
-                        dimensions.wallThickness = 2;
-                    } else if (componentType === 'shelf') {
-                        dimensions.wallWidth = 400;
-                        dimensions.wallHeight = 300;
-                        dimensions.shelfDepth = 200;
-                        dimensions.thickness = 2;
-                    } else if (componentType === 'din-rail') {
-                        dimensions.length = 500;
-                    }
-                    
-                    window.modelScene.addMountingSurface(componentType, dimensions);
-                    alert(`Added ${componentType} mounting surface`);
-                }
-                // Check if it's a field device
-                else if (['button', 'motor', 'led'].includes(componentType)) {
-                    const options = {};
-                    
-                    if (componentType === 'button') {
-                        options.color = 0xff0000; // Red
-                        options.buttonType = 'momentary';
-                    } else if (componentType === 'motor') {
-                        options.power = 1500;
-                    } else if (componentType === 'led') {
-                        options.color = 'green';
-                    }
-                    
-                    const device = window.modelScene.addFieldDevice(componentType, randomPos, options);
-                    alert(`Added ${componentType} at position (${randomPos.x.toFixed(0)}, ${randomPos.y}, ${randomPos.z.toFixed(0)})`);
-                }
-                // Otherwise it's a PLC component
-                else {
-                    const component = window.modelScene.addPLCComponent(componentType, randomPos);
-                    alert(`Added ${componentType} at position (${randomPos.x.toFixed(0)}, ${randomPos.y}, ${randomPos.z.toFixed(0)})`);
                 }
             });
         });

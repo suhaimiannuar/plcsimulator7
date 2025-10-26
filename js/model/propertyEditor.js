@@ -74,8 +74,15 @@ class PropertyEditor {
         this.transformPanel.style.display = 'block';
         this.isUpdating = true;
         
+        // Check if it's a mounting surface
+        const isMounting = !!component.snapPoints || !!component.type && 
+            (component.type === 'plate' || component.type === 'box' || 
+             component.type === 'shelf' || component.type === 'din-rail');
+        
         // Get mesh (component might be the mesh itself or have a mesh property)
-        const mesh = component.mesh || component;
+        const mesh = component.mesh || 
+                    (isMounting ? this.scene.scene.children.find(c => c.userData.mounting === component) : null) ||
+                    component;
         
         if (mesh && mesh.position) {
             // Update position (convert from Three.js units to meters)
@@ -93,15 +100,21 @@ class PropertyEditor {
         }
         
         // Update component info
-        this.nameInput.value = component.name || component.id || 'Unnamed';
-        this.typeSpan.textContent = component.type || 'Unknown';
-        
-        // Check for assignment
-        if (window.assignmentManager) {
-            const assignment = window.assignmentManager.getLadderAddress(component);
-            this.assignmentSpan.textContent = assignment || 'None';
+        if (isMounting) {
+            this.nameInput.value = `${component.type.charAt(0).toUpperCase() + component.type.slice(1)} Mounting`;
+            this.typeSpan.textContent = `Mounting Surface (${component.type})`;
+            this.assignmentSpan.textContent = 'N/A';
         } else {
-            this.assignmentSpan.textContent = 'None';
+            this.nameInput.value = component.name || component.id || 'Unnamed';
+            this.typeSpan.textContent = component.type || 'Unknown';
+            
+            // Check for assignment
+            if (window.assignmentManager) {
+                const assignment = window.assignmentManager.getLadderAddress(component);
+                this.assignmentSpan.textContent = assignment || 'None';
+            } else {
+                this.assignmentSpan.textContent = 'None';
+            }
         }
         
         this.isUpdating = false;
@@ -113,12 +126,48 @@ class PropertyEditor {
     onPositionChange() {
         if (this.isUpdating || !this.selectedComponent) return;
         
-        const mesh = this.selectedComponent.mesh || this.selectedComponent;
+        // Check if it's a mounting surface
+        const isMounting = !!this.selectedComponent.snapPoints;
+        
+        const mesh = this.selectedComponent.mesh || 
+                    (isMounting ? this.scene.scene.children.find(c => c.userData.mounting === this.selectedComponent) : null) ||
+                    this.selectedComponent;
         if (!mesh || !mesh.position) return;
         
         const x = parseFloat(this.posXInput.value) || 0;
         const y = parseFloat(this.posYInput.value) || 0;
         const z = parseFloat(this.posZInput.value) || 0;
+        
+        const newPosition = { x, y, z };
+        
+        // For mounting surfaces, check collision with other mountings
+        if (isMounting) {
+            // Temporarily update position
+            this.selectedComponent.position = newPosition;
+            
+            if (this.scene.checkMountingCollision(this.selectedComponent)) {
+                alert('Mounting surface would collide with another mounting. Position not updated.');
+                // Revert
+                this.updatePanel(this.selectedComponent);
+                return;
+            }
+        } else {
+            // Check for collisions if scene has collision detection
+            if (this.scene && this.scene.checkComponentCollision && this.selectedComponent.dimensions) {
+                const collision = this.scene.checkComponentCollision(
+                    newPosition,
+                    this.selectedComponent.dimensions,
+                    this.selectedComponent // Exclude self from collision check
+                );
+                
+                if (collision.collides) {
+                    alert(collision.reason + ' Position not updated.');
+                    // Revert to current position
+                    this.updatePanel(this.selectedComponent);
+                    return;
+                }
+            }
+        }
         
         mesh.position.set(x, y, z);
         

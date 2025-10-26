@@ -1,105 +1,102 @@
 // ===== View Switching & Sidebar Management =====
-// Handles switching between Ladder and 3D views with appropriate sidebar content
+// Handles switching between Ladder, Drawing, and 3D views with appropriate sidebar content
 
 /**
- * Switch to Ladder view
+ * Switch between views (ladder, drawing, or 3d)
+ * @param {string} viewType - 'ladder', 'drawing', or '3d'
  */
-function switchToLadderView() {
-    // Hide 3D workspace, show ladder workspace
-    document.querySelector('.ladder-workspace').style.display = 'block';
-    document.querySelector('.model-workspace').style.display = 'none';
-    
-    // Switch sidebar content
-    document.getElementById('ladder-components').style.display = 'block';
-    document.getElementById('model-components').style.display = 'none';
-    
-    // Switch right sidebar panels
+function switchToView(viewType) {
+    const ladderWorkspace = document.querySelector('.ladder-workspace');
+    const drawingWorkspace = document.querySelector('.drawing-workspace');
+    const modelWorkspace = document.querySelector('.model-workspace');
     const ladderRightPanels = document.getElementById('ladder-right-panels');
     const modelRightPanels = document.getElementById('model-right-panels');
-    if (ladderRightPanels) ladderRightPanels.style.display = 'block';
+    
+    // Sidebar content divs
+    const ladderComponents = document.getElementById('ladder-components');
+    const drawingComponents = document.getElementById('drawing-components');
+    const modelComponents = document.getElementById('model-components');
+    
+    const viewLadderBtn = document.getElementById('viewLadder');
+    const viewDrawingBtn = document.getElementById('viewDrawing');
+    const view3DBtn = document.getElementById('view3D');
+    
+    // Hide all views
+    if (ladderWorkspace) ladderWorkspace.style.display = 'none';
+    if (drawingWorkspace) drawingWorkspace.style.display = 'none';
+    if (modelWorkspace) modelWorkspace.style.display = 'none';
+    if (ladderRightPanels) ladderRightPanels.style.display = 'none';
     if (modelRightPanels) modelRightPanels.style.display = 'none';
     
-    // Update view buttons
-    document.getElementById('viewLadder').classList.add('btn-primary');
-    document.getElementById('viewLadder').classList.remove('btn-secondary');
-    document.getElementById('view3D').classList.remove('btn-primary');
-    document.getElementById('view3D').classList.add('btn-secondary');
+    // Hide all sidebar content
+    if (ladderComponents) ladderComponents.style.display = 'none';
+    if (drawingComponents) drawingComponents.style.display = 'none';
+    if (modelComponents) modelComponents.style.display = 'none';
     
-    console.log('Switched to Ladder view');
+    // Reset button styles
+    [viewLadderBtn, viewDrawingBtn, view3DBtn].forEach(btn => {
+        if (btn) {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
+        }
+    });
+    
+    // Show selected view
+    if (viewType === 'ladder') {
+        if (ladderWorkspace) ladderWorkspace.style.display = 'block';
+        if (ladderRightPanels) ladderRightPanels.style.display = 'block';
+        if (ladderComponents) ladderComponents.style.display = 'block';
+        if (viewLadderBtn) {
+            viewLadderBtn.classList.remove('btn-secondary');
+            viewLadderBtn.classList.add('btn-primary');
+        }
+        console.log('Switched to Ladder view');
+        
+    } else if (viewType === 'drawing') {
+        if (drawingWorkspace) drawingWorkspace.style.display = 'block';
+        if (drawingComponents) drawingComponents.style.display = 'block';
+        if (viewDrawingBtn) {
+            viewDrawingBtn.classList.remove('btn-secondary');
+            viewDrawingBtn.classList.add('btn-primary');
+        }
+        
+        // Initialize drawing view if not already
+        if (!window.drawingCanvas && typeof initDrawing === 'function') {
+            initDrawing();
+        }
+        
+        console.log('Switched to Drawing view');
+        
+    } else if (viewType === '3d') {
+        if (modelWorkspace) modelWorkspace.style.display = 'block';
+        if (modelRightPanels) modelRightPanels.style.display = 'block';
+        if (modelComponents) modelComponents.style.display = 'block';
+        if (view3DBtn) {
+            view3DBtn.classList.remove('btn-secondary');
+            view3DBtn.classList.add('btn-primary');
+        }
+        
+        // Initialize 3D view if not already
+        if (!window.modelScene && typeof initModel === 'function') {
+            initModel();
+        }
+        
+        console.log('Switched to 3D Model view');
+    }
 }
 
 /**
- * Switch to 3D Model view
+ * Switch to Ladder view (legacy function for backward compatibility)
+ */
+function switchToLadderView() {
+    switchToView('ladder');
+}
+
+/**
+ * Switch to 3D Model view (legacy function for backward compatibility)
  */
 function switchTo3DView() {
-    // Hide ladder workspace, show 3D workspace
-    document.querySelector('.ladder-workspace').style.display = 'none';
-    document.querySelector('.model-workspace').style.display = 'block';
-    
-    // Switch sidebar content
-    document.getElementById('ladder-components').style.display = 'none';
-    document.getElementById('model-components').style.display = 'block';
-    
-    // Switch right sidebar panels
-    const ladderRightPanels = document.getElementById('ladder-right-panels');
-    const modelRightPanels = document.getElementById('model-right-panels');
-    if (ladderRightPanels) ladderRightPanels.style.display = 'none';
-    if (modelRightPanels) modelRightPanels.style.display = 'block';
-    
-    // Update view buttons
-    document.getElementById('view3D').classList.add('btn-primary');
-    document.getElementById('view3D').classList.remove('btn-secondary');
-    document.getElementById('viewLadder').classList.remove('btn-primary');
-    document.getElementById('viewLadder').classList.add('btn-secondary');
-    
-    // Initialize 3D scene if needed
-    if (typeof modelScene === 'undefined' || !modelScene) {
-        initModel3D();
-    }
-    
-    // Trigger resize to ensure proper canvas sizing
-    if (typeof modelScene !== 'undefined' && modelScene.onWindowResize) {
-        setTimeout(() => modelScene.onWindowResize(), 100);
-    }
-    
-    console.log('Switched to 3D Model view');
-}
-
-/**
- * Switch to Split view (both Ladder and 3D)
- */
-function switchToSplitView() {
-    // Show both workspaces
-    const ladderWorkspace = document.querySelector('.ladder-workspace');
-    const modelWorkspace = document.querySelector('.model-workspace');
-    
-    ladderWorkspace.style.display = 'block';
-    modelWorkspace.style.display = 'block';
-    
-    // Adjust layout for split view
-    ladderWorkspace.style.width = '50%';
-    modelWorkspace.style.width = '50%';
-    ladderWorkspace.style.float = 'left';
-    modelWorkspace.style.float = 'right';
-    
-    // Show 3D sidebar content in split view
-    document.getElementById('ladder-components').style.display = 'none';
-    document.getElementById('model-components').style.display = 'block';
-    
-    // Update view buttons
-    document.getElementById('viewSplit').classList.add('btn-primary');
-    document.getElementById('viewSplit').classList.remove('btn-secondary');
-    document.getElementById('viewLadder').classList.remove('btn-primary');
-    document.getElementById('viewLadder').classList.add('btn-secondary');
-    document.getElementById('view3D').classList.remove('btn-primary');
-    document.getElementById('view3D').classList.add('btn-secondary');
-    
-    // Initialize 3D scene if needed
-    if (typeof modelScene === 'undefined' || !modelScene) {
-        initModel3D();
-    }
-    
-    console.log('Switched to Split view');
+    switchToView('3d');
 }
 
 /**
