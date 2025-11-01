@@ -2604,7 +2604,9 @@ function evaluateFormula(formula) {
     // Formula is now ready to evaluate
     
     try {
-        const result = eval(jsFormula);
+        // Use Function constructor instead of eval for better security
+        const evalFunc = new Function('context', `return ${jsFormula}`);
+        const result = evalFunc(context);
         return Boolean(result);
     } catch (error) {
         console.error('❌ Formula evaluation error:', error);
