@@ -2186,12 +2186,14 @@
                         if (viewer3D) {
                             if (model.format === 'obj') {
                                 // Load OBJ+MTL
-                                const objPath = `libs/model/${model.file}`;
-                                const mtlPath = `libs/model/${model.mtlFile}`;
+                                // Check if URL is absolute (starts with http/https) or relative
+                                const objPath = model.file.startsWith('http') ? model.file : `libs/model/${model.file}`;
+                                const mtlPath = model.mtlFile.startsWith('http') ? model.mtlFile : `libs/model/${model.mtlFile}`;
                                 viewer3D.loadOBJ(objPath, mtlPath, model.name, model);
                             } else {
                                 // Load STL
-                                const filePath = `libs/model/${model.file}`;
+                                // Check if URL is absolute (starts with http/https) or relative
+                                const filePath = model.file.startsWith('http') ? model.file : `libs/model/${model.file}`;
                                 viewer3D.loadSTL(filePath, model.name, model);
                             }
                         }
