@@ -2,7 +2,7 @@
   "models": [
     {
       "name": "Motor Controller",
-      "file": "https://drive.google.com/uc?export=download&id=1CdsH8l1w3PHHInEIgoIclZXNcVKv_WT4",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1CdsH8l1w3PHHInEIgoIclZXNcVKv_WT4",
       "format": "stl",
       "size": "23MB",
       "type": "motor",
@@ -10,7 +10,7 @@
     },
     {
       "name": "PLC",
-      "file": "https://drive.google.com/uc?export=download&id=1dblT_kRU03WqaAOVDQij6vlWhqBs0diB",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1dblT_kRU03WqaAOVDQij6vlWhqBs0diB",
       "format": "stl",
       "size": "26MB",
       "type": "cpu",
@@ -18,7 +18,7 @@
     },
     {
       "name": "Circuit Breaker",
-      "file": "https://drive.google.com/uc?export=download&id=1BMBGZXdwuwyC6KW-QM-SRCRZZ3kWWqC6",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1BMBGZXdwuwyC6KW-QM-SRCRZZ3kWWqC6",
       "format": "stl",
       "size": "43MB",
       "type": "circuit-breaker",
@@ -26,7 +26,7 @@
     },
     {
       "name": "Emergency Push Button",
-      "file": "https://drive.google.com/uc?export=download&id=1N05Ljj5H3e-juD9lYryCfhoepWlbtl77",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1N05Ljj5H3e-juD9lYryCfhoepWlbtl77",
       "format": "stl",
       "size": "12MB",
       "type": "button",
@@ -34,7 +34,7 @@
     },
     {
       "name": "PCB Mount Relay",
-      "file": "https://drive.google.com/uc?export=download&id=1C9vU36rzPGtbcQIXZTpjSH89EobAe3sW",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1C9vU36rzPGtbcQIXZTpjSH89EobAe3sW",
       "format": "stl",
       "size": "0.8MB",
       "type": "relay",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Stack LED Light",
-      "file": "https://drive.google.com/uc?export=download&id=14hEqaKP3fLupa8if4s1JOXnRbp6NpaO2",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=14hEqaKP3fLupa8if4s1JOXnRbp6NpaO2",
       "format": "stl",
       "size": "14MB",
       "type": "led",
@@ -50,8 +50,8 @@
     },
     {
       "name": "PCB Board",
-      "file": "https://drive.google.com/uc?export=download&id=1L8uz5msBC9noz7vJOWiySG0o8tSNr_uP",
-      "mtlFile": "https://drive.google.com/uc?export=download&id=1ELa9Iv4GSaYphUEvtjfnBsj3-BoERc4q",
+      "file": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1L8uz5msBC9noz7vJOWiySG0o8tSNr_uP",
+      "mtlFile": "https://corsproxy.io/?https://drive.google.com/uc?export=download&id=1ELa9Iv4GSaYphUEvtjfnBsj3-BoERc4q",
       "format": "obj",
       "size": "1MB",
       "type": "pcb",
