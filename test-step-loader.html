@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEP Loader Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+        }
+        
+        #container {
+            width: 100%;
+            height: 600px;
+            background: #2a2a2a;
+            border: 2px solid #444;
+        }
+        
+        #info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #2ecc71;
+        }
+        
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #444;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .success { color: #2ecc71; }
+        .error { color: #e74c3c; }
+        .info { color: #3498db; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>🔬 STEP File Loader Test</h1>
+        <p>Testing the new RealSTEPLoader with your actual STEP files</p>
+        
+        <div id="model-buttons" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 600px;">
+            <button disabled>Loading models...</button>
+        </div>
+        
+        <p id="model-count" style="color: #888; font-size: 12px; margin-top: 15px;">
+            ℹ️ Loading STL model catalog...
+        </p>
+        
+        <div id="status">
+            <div class="log-entry info">Ready to test STEP loading...</div>
+        </div>
+    </div>
+    
+    <div id="container"></div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    
+    <!-- STL Model System -->
+    <script src="js/model/stlCatalog.js"></script>
+    <script src="js/model/loaders/stlLoader.js"></script>
+    
+    <script>
+        let scene, camera, renderer, controls;
+        let currentMesh = null;
+        
+        // Initialize Three.js scene
+        function init() {
+            const container = document.getElementById('container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth / container.clientHeight,
+                1,
+                5000
+            );
+            camera.position.set(200, 150, 200);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            
+            const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+            directional.position.set(100, 200, 100);
+            directional.castShadow = true;
+            scene.add(directional);
+            
+            // Grid
+            const grid = new THREE.GridHelper(500, 50, 0x444444, 0x222222);
+            scene.add(grid);
+            
+            // Axes
+            const axes = new THREE.AxesHelper(100);
+            scene.add(axes);
+            
+            // Animate
+            animate();
+            
+            log('✅ Three.js scene initialized', 'success');
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            status.appendChild(entry);
+            status.scrollTop = status.scrollHeight;
+            console.log(message);
+        }
+        
+        async function loadSTL(file, name) {
+            try {
+                log(`🔄 Loading ${name} from ${file}...`, 'info');
+                
+                // Check if loader is available
+                if (typeof SimpleSTLLoader === 'undefined') {
+                    throw new Error('SimpleSTLLoader not loaded. Check console for script errors.');
+                }
+                
+                // Check if THREE.STLLoader is available
+                if (typeof THREE === 'undefined') {
+                    throw new Error('THREE.js not loaded');
+                }
+                
+                if (typeof THREE.STLLoader === 'undefined') {
+                    throw new Error('THREE.STLLoader not loaded. Make sure the STLLoader.js script is included.');
+                }
+                
+                // Remove current mesh
+                if (currentMesh) {
+                    scene.remove(currentMesh);
+                }
+                
+                const loader = new SimpleSTLLoader();
+                
+                const mesh = await new Promise((resolve, reject) => {
+                    loader.load(
+                        file,
+                        (loadedMesh) => {
+                            log(`✅ ${name} loaded successfully!`, 'success');
+                            resolve(loadedMesh);
+                        },
+                        (progress) => {
+                            // Progress callback
+                        },
+                        (error) => {
+                            const errorMsg = error ? (error.message || error.toString()) : 'Unknown error';
+                            log(`❌ Failed to load ${name}: ${errorMsg}`, 'error');
+                            reject(error);
+                        }
+                    );
+                });
+                
+                // Add to scene
+                currentMesh = mesh;
+                scene.add(mesh);
+                
+                // Center camera on mesh
+                const box = new THREE.Box3().setFromObject(mesh);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                controls.target.copy(center);
+                camera.position.copy(center);
+                camera.position.y += size.y;
+                camera.position.z += size.z * 2;
+                
+                log(`📊 Mesh bounds: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`, 'info');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load and display model buttons dynamically
+        async function loadModelButtons() {
+            try {
+                // Load the catalog
+                const models = await stlModelCatalog.loadCatalog();
+                
+                // Create buttons container
+                const container = document.getElementById('model-buttons');
+                container.innerHTML = '';
+                
+                // Create a button for each model
+                models.forEach((model, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = `${model.name} (${model.size})`;
+                    button.onclick = () => loadModel(model);
+                    container.appendChild(button);
+                });
+                
+                // Update info text
+                document.getElementById('model-count').textContent = 
+                    `ℹ️ ${models.length} CAD models available (converted from STEP to STL)`;
+                
+                log(`✅ ${models.length} models loaded in catalog`, 'success');
+                
+            } catch (error) {
+                log(`❌ Failed to load model catalog: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load a specific model
+        function loadModel(model) {
+            const filePath = `libs/model/${model.file}`;
+            log(`📂 Selected: ${model.name}`, 'info');
+            loadSTL(filePath, model.name);
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            init();
+            await loadModelButtons();
+        });
+    </script>
+</body>
+</html>

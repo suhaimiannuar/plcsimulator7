@@ -1,9 +1,9 @@
 // ===== View Switching & Sidebar Management =====
-// Handles switching between Ladder, Drawing, and 3D views with appropriate sidebar content
+// Handles switching between Ladder and Drawing views with appropriate sidebar content
 
 /**
- * Switch between views (ladder, drawing, or 3d)
- * @param {string} viewType - 'ladder', 'drawing', or '3d'
+ * Switch between views (ladder, drawing, or 3D models)
+ * @param {string} viewType - 'ladder', 'drawing', or '3dmodels'
  */
 function switchToView(viewType) {
     const ladderWorkspace = document.querySelector('.ladder-workspace');
@@ -19,7 +19,7 @@ function switchToView(viewType) {
     
     const viewLadderBtn = document.getElementById('viewLadder');
     const viewDrawingBtn = document.getElementById('viewDrawing');
-    const view3DBtn = document.getElementById('view3D');
+    const view3DModelsBtn = document.getElementById('view3DModels');
     
     // Hide all views
     if (ladderWorkspace) ladderWorkspace.style.display = 'none';
@@ -34,7 +34,7 @@ function switchToView(viewType) {
     if (modelComponents) modelComponents.style.display = 'none';
     
     // Reset button styles
-    [viewLadderBtn, viewDrawingBtn, view3DBtn].forEach(btn => {
+    [viewLadderBtn, viewDrawingBtn, view3DModelsBtn].forEach(btn => {
         if (btn) {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-secondary');
@@ -67,21 +67,21 @@ function switchToView(viewType) {
         
         console.log('Switched to Drawing view');
         
-    } else if (viewType === '3d') {
+    } else if (viewType === '3dmodels') {
         if (modelWorkspace) modelWorkspace.style.display = 'block';
-        if (modelRightPanels) modelRightPanels.style.display = 'block';
         if (modelComponents) modelComponents.style.display = 'block';
-        if (view3DBtn) {
-            view3DBtn.classList.remove('btn-secondary');
-            view3DBtn.classList.add('btn-primary');
+        if (modelRightPanels) modelRightPanels.style.display = 'block';
+        if (view3DModelsBtn) {
+            view3DModelsBtn.classList.remove('btn-secondary');
+            view3DModelsBtn.classList.add('btn-primary');
         }
         
-        // Initialize 3D view if not already
-        if (!window.modelScene && typeof initModel === 'function') {
-            initModel();
+        // Initialize 3D viewer if not already
+        if (typeof window.init3DModelViewer === 'function') {
+            window.init3DModelViewer();
         }
         
-        console.log('Switched to 3D Model view');
+        console.log('Switched to 3D Models view');
     }
 }
 
@@ -92,317 +92,26 @@ function switchToLadderView() {
     switchToView('ladder');
 }
 
-/**
- * Switch to 3D Model view (legacy function for backward compatibility)
- */
-function switchTo3DView() {
-    switchToView('3d');
-}
-
-/**
- * Handle 3D component button clicks from sidebar
- */
-function setup3DComponentButtons() {
-    const componentButtons = document.querySelectorAll('.model-component-btn');
-    
-    componentButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const componentType = this.getAttribute('data-component');
-            add3DComponent(componentType);
-        });
-    });
-}
-
-/**
- * Add 3D component to scene
- * @param {string} componentType - Type of component to add
- */
-function add3DComponent(componentType) {
-    if (typeof modelScene === 'undefined' || !modelScene) {
-        console.error('3D scene not initialized');
-        alert('Please switch to 3D view first');
-        return;
-    }
-    
-    // Random position for new components
-    const position = {
-        x: Math.random() * 200 - 100,
-        y: 50,
-        z: Math.random() * 200 - 100
-    };
-    
-    let component;
-    
-    // Mounting surfaces
-    if (['plate', 'box', 'shelf', 'din-rail'].includes(componentType)) {
-        const dimensions = {
-            width: 600,
-            length: 400,
-            thickness: 2,
-            height: 300,
-            wallThickness: 2,
-            wallWidth: 400,
-            wallHeight: 300,
-            shelfDepth: 200
-        };
-        
-        component = modelScene.addMountingSurface(componentType, dimensions);
-        console.log(`Added mounting surface: ${componentType}`);
-    }
-    // PLC components
-    else if (['power-supply', 'cpu', 'digital-input', 'digital-output'].includes(componentType)) {
-        component = modelScene.addPLCComponent(componentType, position);
-        console.log(`Added PLC component: ${componentType} at`, position);
-    }
-    // Field devices
-    else if (['button', 'motor', 'led'].includes(componentType)) {
-        const options = {
-            color: componentType === 'button' ? 0xff0000 : 
-                   componentType === 'led' ? 'red' : null,
-            power: componentType === 'motor' ? 1500 : null
-        };
-        
-        component = modelScene.addFieldDevice(componentType, position, options);
-        console.log(`Added field device: ${componentType} at`, position);
-        
-        // Show success message
-        showToast(`✅ Added ${componentType.toUpperCase()}`, 'success');
-    }
-    
-    return component;
-}
-
-/**
- * Setup sidebar 3D controls
- */
-function setup3DSidebarControls() {
-    // Toggle Grid button
-    const toggleGrid3D = document.getElementById('toggleGrid3D');
-    if (toggleGrid3D) {
-        toggleGrid3D.addEventListener('click', function() {
-            if (typeof modelScene !== 'undefined' && modelScene.toggleGrid) {
-                const isVisible = modelScene.toggleGrid();
-                this.classList.toggle('btn-primary', isVisible);
-                this.classList.toggle('btn-secondary', !isVisible);
-            }
-        });
-    }
-    
-    // Toggle Axes button
-    const toggleAxes3D = document.getElementById('toggleAxes3D');
-    if (toggleAxes3D) {
-        toggleAxes3D.addEventListener('click', function() {
-            if (typeof modelScene !== 'undefined' && modelScene.toggleAxes) {
-                const isVisible = modelScene.toggleAxes();
-                this.classList.toggle('btn-primary', isVisible);
-                this.classList.toggle('btn-secondary', !isVisible);
-            }
-        });
-    }
-    
-    // Transform Mode selector
-    const transformMode3D = document.getElementById('transformMode3D');
-    if (transformMode3D) {
-        transformMode3D.addEventListener('change', function() {
-            if (typeof modelScene !== 'undefined' && modelScene.setTransformMode) {
-                modelScene.setTransformMode(this.value);
-                console.log('Transform mode set to:', this.value);
-            }
-        });
-    }
-    
-    // Create Example button
-    const createExample3D = document.getElementById('createExample3D');
-    if (createExample3D) {
-        createExample3D.addEventListener('click', function() {
-            createExample3DSetup();
-        });
-    }
-    
-    // View Assignments button
-    const viewAssignments3D = document.getElementById('viewAssignments3D');
-    if (viewAssignments3D) {
-        viewAssignments3D.addEventListener('click', function() {
-            if (typeof showAllAssignments === 'function') {
-                showAllAssignments();
-            }
-        });
-    }
-    
-    // Assign Selected button
-    const assignSelected = document.getElementById('assignSelected');
-    if (assignSelected) {
-        assignSelected.addEventListener('click', function() {
-            if (typeof modelScene !== 'undefined' && modelScene.selectedComponent) {
-                if (typeof showAssignmentDialog === 'function') {
-                    showAssignmentDialog(modelScene.selectedComponent);
-                }
-            }
-        });
-    }
-}
-
-/**
- * Create example 3D setup
- */
-function createExample3DSetup() {
-    if (typeof modelScene === 'undefined') {
-        alert('3D scene not initialized');
-        return;
-    }
-    
-    console.log('Creating example 3D setup...');
-    
-    // Add mounting plate
-    modelScene.addMountingSurface('plate', {
-        width: 600,
-        length: 400,
-        thickness: 2
-    });
-    
-    // Add some components
-    modelScene.addFieldDevice('button', { x: -100, y: 50, z: 0 }, { color: 0x00ff00 });
-    modelScene.addFieldDevice('button', { x: -100, y: 50, z: 60 }, { color: 0xff0000 });
-    modelScene.addFieldDevice('motor', { x: 0, y: 80, z: 0 }, { power: 1500 });
-    modelScene.addFieldDevice('led', { x: 100, y: 50, z: 0 }, { color: 'green' });
-    modelScene.addFieldDevice('led', { x: 100, y: 50, z: 60 }, { color: 'red' });
-    
-    showToast('✅ Example setup created!', 'success');
-    console.log('Example 3D setup complete');
-}
-
-/**
- * Update selected component info in sidebar
- * @param {Object} component - Selected component
- */
-function updateSidebarComponentInfo(component) {
-    const infoPanel = document.getElementById('selectedComponentInfo3D');
-    const compName = document.getElementById('compName');
-    const compType = document.getElementById('compType');
-    const compAssignment = document.getElementById('compAssignment');
-    
-    if (!infoPanel || !compName || !compType || !compAssignment) return;
-    
-    if (!component) {
-        infoPanel.style.display = 'none';
-        return;
-    }
-    
-    // Show panel
-    infoPanel.style.display = 'block';
-    
-    // Update info
-    compName.textContent = component.name || component.id || 'Unknown';
-    compType.textContent = component.type || 'Unknown';
-    
-    // Check assignment
-    if (typeof assignmentManager !== 'undefined') {
-        const address = assignmentManager.getLadderAddress(component);
-        if (address) {
-            compAssignment.innerHTML = `<span style="color: #4CAF50;">📌 ${address}</span>`;
-        } else {
-            compAssignment.innerHTML = '<span style="color: #FF9800;">⚠️ Not assigned</span>';
-        }
-    } else {
-        compAssignment.textContent = '-';
-    }
-}
-
-/**
- * Show toast notification
- * @param {string} message - Message to show
- * @param {string} type - Type (success, error, info)
- */
-function showToast(message, type = 'info') {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 4px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        z-index: 10000;
-        animation: slideIn 0.3s ease-out;
-    `;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease-in';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-// Add CSS animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
 // Initialize on DOM load
 if (typeof window !== 'undefined') {
     window.addEventListener('DOMContentLoaded', function() {
         // Setup view switching buttons
         const viewLadder = document.getElementById('viewLadder');
-        const view3D = document.getElementById('view3D');
-        const viewSplit = document.getElementById('viewSplit');
+        const viewDrawing = document.getElementById('viewDrawing');
+        const view3DModels = document.getElementById('view3DModels');
         
         if (viewLadder) {
-            viewLadder.addEventListener('click', switchToLadderView);
+            viewLadder.addEventListener('click', () => switchToView('ladder'));
         }
         
-        if (view3D) {
-            view3D.addEventListener('click', switchTo3DView);
+        if (viewDrawing) {
+            viewDrawing.addEventListener('click', () => switchToView('drawing'));
         }
         
-        if (viewSplit) {
-            viewSplit.addEventListener('click', switchToSplitView);
+        if (view3DModels) {
+            view3DModels.addEventListener('click', () => switchToView('3dmodels'));
         }
-        
-        // Setup 3D component buttons in sidebar
-        setup3DComponentButtons();
-        
-        // Setup 3D sidebar controls
-        setup3DSidebarControls();
         
         console.log('✅ View switching initialized');
     });
-    
-    // Listen to component selection changes
-    if (typeof window.addEventListener !== 'undefined') {
-        window.addEventListener('componentSelected', function(e) {
-            updateSidebarComponentInfo(e.detail.component);
-        });
-        
-        window.addEventListener('componentDeselected', function() {
-            updateSidebarComponentInfo(null);
-        });
-    }
 }

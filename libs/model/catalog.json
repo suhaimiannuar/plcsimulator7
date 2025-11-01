@@ -1,0 +1,61 @@
+{
+  "models": [
+    {
+      "name": "Motor Controller",
+      "file": "motor-controller.stl",
+      "format": "stl",
+      "size": "23MB",
+      "type": "motor",
+      "description": "Stepper motor with mounting feet"
+    },
+    {
+      "name": "PLC",
+      "file": "plc.stl",
+      "format": "stl",
+      "size": "26MB",
+      "type": "cpu",
+      "description": "Programmable Logic Controller module"
+    },
+    {
+      "name": "Circuit Breaker",
+      "file": "circuit-breaker.stl",
+      "format": "stl",
+      "size": "43MB",
+      "type": "circuit-breaker",
+      "description": "DIN rail circuit breaker"
+    },
+    {
+      "name": "Emergency Push Button",
+      "file": "emergency-push-button.stl",
+      "format": "stl",
+      "size": "12MB",
+      "type": "button",
+      "description": "Emergency stop push button"
+    },
+    {
+      "name": "PCB Mount Relay",
+      "file": "pcb-mount-relay.stl",
+      "format": "stl",
+      "size": "0.8MB",
+      "type": "relay",
+      "description": "PCB mounted relay module"
+    },
+    {
+      "name": "Stack LED Light",
+      "file": "stack-led-light.stl",
+      "format": "stl",
+      "size": "14MB",
+      "type": "led",
+      "description": "Industrial stack light indicator"
+    },
+    {
+      "name": "PCB Board",
+      "file": "pcb.obj",
+      "mtlFile": "pcb.mtl",
+      "format": "obj",
+      "size": "1MB",
+      "type": "pcb",
+      "description": "Printed Circuit Board with colored components"
+    }
+  ]
+}

@@ -19,8 +19,8 @@
                 <button id="clearDiagram" class="btn btn-danger">Clear</button>
                 <div style="border-left: 2px solid #555; margin: 0 10px; height: 30px;"></div>
                 <button id="viewLadder" class="btn btn-primary">📊 Ladder</button>
-                <button id="viewDrawing" class="btn btn-secondary">✏️ Drawing</button>
-                <button id="view3D" class="btn btn-secondary">🎲 3D Model</button>
+                <button id="viewDrawing" class="btn btn-secondary">✏️ Schematic Drawing</button>
+                <button id="view3DModels" class="btn btn-secondary" style="margin-left: auto;">🎲 3D Models</button>
             </div>
         </header>
 
@@ -236,109 +236,18 @@
 
                 <!-- 3D Model Components (shown in 3D view, initially hidden) -->
                 <div id="model-components" class="sidebar-content" style="display: none;">
-                    <h2>3D Components</h2>
+                    <h2>3D Models</h2>
                     
                     <div class="component-category">
-                        <h3>Quick Actions</h3>
-                        <button id="createExample3D" class="btn btn-success btn-block">
-                            🏗️ Create Example Setup
+                        <p id="model-catalog-info" style="font-size: 11px; color: #888; margin: 5px 0 15px 0;">
+                            Loading STL catalog...
+                        </p>
+                    </div>
+                    
+                    <div id="model-list-buttons" class="component-category">
+                        <button disabled class="btn btn-secondary btn-block">
+                            ⏳ Loading models...
                         </button>
-                        <button id="viewAssignments3D" class="btn btn-info btn-block">
-                            📋 View Assignments
-                        </button>
-                    </div>
-
-                    <div class="component-category">
-                        <h3>Mounting Surfaces</h3>
-                        <div class="component-grid">
-                            <button class="model-component-btn" data-component="plate">
-                                <span class="component-icon">⬜</span>
-                                <span class="component-label">Plate</span>
-                            </button>
-                            <button class="model-component-btn" data-component="box">
-                                <span class="component-icon">📦</span>
-                                <span class="component-label">Box</span>
-                            </button>
-                            <button class="model-component-btn" data-component="shelf">
-                                <span class="component-icon">📐</span>
-                                <span class="component-label">Shelf</span>
-                            </button>
-                            <button class="model-component-btn" data-component="din-rail">
-                                <span class="component-icon">━━</span>
-                                <span class="component-label">DIN Rail</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="component-category">
-                        <h3>PLC Hardware</h3>
-                        <div class="component-grid">
-                            <button class="model-component-btn" data-component="power-supply">
-                                <span class="component-icon">🔌</span>
-                                <span class="component-label">Power Supply</span>
-                            </button>
-                            <button class="model-component-btn" data-component="cpu">
-                                <span class="component-icon">🖥️</span>
-                                <span class="component-label">CPU Module</span>
-                            </button>
-                            <button class="model-component-btn" data-component="digital-input">
-                                <span class="component-icon">📥</span>
-                                <span class="component-label">DI Module</span>
-                            </button>
-                            <button class="model-component-btn" data-component="digital-output">
-                                <span class="component-icon">📤</span>
-                                <span class="component-label">DO Module</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="component-category">
-                        <h3>Field Devices</h3>
-                        <div class="component-grid">
-                            <button class="model-component-btn" data-component="button">
-                                <span class="component-icon">🔘</span>
-                                <span class="component-label">Button</span>
-                            </button>
-                            <button class="model-component-btn" data-component="motor">
-                                <span class="component-icon">⚙️</span>
-                                <span class="component-label">Motor</span>
-                            </button>
-                            <button class="model-component-btn" data-component="led">
-                                <span class="component-icon">💡</span>
-                                <span class="component-label">LED</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="component-category">
-                        <h3>View Controls</h3>
-                        <button id="toggleGrid3D" class="btn btn-secondary btn-block">
-                            📐 Toggle Grid
-                        </button>
-                        <button id="toggleAxes3D" class="btn btn-secondary btn-block">
-                            📏 Toggle Axes
-                        </button>
-                    </div>
-
-                    <div class="component-category">
-                        <h3>Transform Mode</h3>
-                        <select id="transformMode3D" class="form-control" style="width: 100%; padding: 8px;">
-                            <option value="translate">🔄 Move</option>
-                            <option value="rotate">🔁 Rotate</option>
-                            <option value="scale">📏 Scale</option>
-                        </select>
-                    </div>
-
-                    <div class="component-category" id="selectedComponentInfo3D" style="display: none; background: #2c3e50; padding: 10px; border-radius: 4px;">
-                        <h3>Selected Component</h3>
-                        <div id="selectedComponentDetails" style="font-size: 12px;">
-                            <p><strong>Name:</strong> <span id="compName">-</span></p>
-                            <p><strong>Type:</strong> <span id="compType">-</span></p>
-                            <p><strong>Assignment:</strong> <span id="compAssignment">-</span></p>
-                            <button id="assignSelected" class="btn btn-warning btn-block btn-sm">
-                                📌 Assign to Ladder
-                            </button>
-                        </div>
                     </div>
                 </div>
                 <!-- End of 3D Model Components -->
@@ -392,8 +301,18 @@
 
             <!-- 3D Model View (initially hidden) -->
             <main class="model-workspace" style="display: none;">
-                <div id="model-container" class="model-viewport" style="width: 100%; height: calc(100vh - 120px); background: #1e1e1e; position: relative;">
+                <div id="model-viewer-container" style="width: 100%; height: calc(100vh - 120px); background: #f0f0f0; position: relative;">
                     <!-- Three.js canvas will be inserted here -->
+                    
+                    <!-- ViewCube - Top Right Corner (Canvas-based) -->
+                    <div id="viewCubeContainer" style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+                        <div style="text-align: center; margin-bottom: 5px; font-size: 11px; color: #555; font-weight: bold;">View Cube</div>
+                        <canvas id="viewCubeCanvas" width="150" height="150" style="cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 8px;"></canvas>
+                    </div>
+                    
+                    <div id="model-viewer-status" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; font-family: monospace; max-height: 150px; overflow-y: auto; max-width: 400px; z-index: 10;">
+                        <div class="log-entry">Ready to load models...</div>
+                    </div>
                 </div>
             </main>
 
@@ -436,79 +355,82 @@
                     </div>
                 </div>
 
-                <!-- 3D View Panels (shown when in 3D view) -->
+                <!-- 3D Model View Panels (shown when in 3D model view) -->
                 <div id="model-right-panels" style="display: none;">
-                    <!-- Component Info Panel (merged from overlay) -->
-                    <div id="componentInfo" class="properties-panel" style="display: none;">
-                        <h2 id="compInfoName">Component Info</h2>
-                        <div id="compInfoDetails" class="properties-content" style="font-size: 12px;">
+                    <!-- Mounting Configuration -->
+                    <div class="io-panel">
+                        <h2>📐 Mounting Setup</h2>
+                        <div style="padding: 10px;">
+                            <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">Mounting Type:</label>
+                            <select id="mountingType" style="width: 100%; padding: 5px; margin-bottom: 10px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                                <option value="box">Control Cabinet (Box)</option>
+                                <option value="plate">Mounting Plate (Flat)</option>
+                                <option value="shelf">Shelf (Open Front)</option>
+                            </select>
+                            
+                            <label style="font-size: 11px; color: #888; display: block; margin-top: 10px;">Width (mm):</label>
+                            <input type="number" id="mountingWidth" value="300" min="200" max="2000" step="50" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                            
+                            <label style="font-size: 11px; color: #888; display: block; margin-top: 8px;">Height (mm):</label>
+                            <input type="number" id="mountingHeight" value="400" min="200" max="2000" step="50" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                            
+                            <label style="font-size: 11px; color: #888; display: block; margin-top: 8px;">Depth (mm):</label>
+                            <input type="number" id="mountingDepth" value="200" min="100" max="1000" step="50" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                            
+                            <button id="applyMounting" class="btn btn-success btn-small" style="margin-top: 10px; width: 100%;">Apply Changes</button>
                         </div>
                     </div>
 
-                    <!-- Transform Properties -->
-                    <div class="transform-panel" id="transformPanel" style="display: none;">
-                        <h3>Transform</h3>
-                        
-                        <div class="property-group">
-                            <h4>Position (meters)</h4>
-                            <div class="property-row">
-                                <label>X:</label>
-                                <input type="number" id="posX" step="0.01" value="0">
+                    <!-- View Mode Controls -->
+                    <div class="io-panel">
+                        <h2>👁️ View Mode</h2>
+                        <div style="padding: 10px;">
+                            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                                <button id="view2D" class="btn btn-success btn-small" style="flex: 1; font-size: 11px;">📐 2D Top View</button>
+                                <button id="view3D" class="btn btn-secondary btn-small" style="flex: 1; font-size: 11px;">🎲 3D View</button>
                             </div>
-                            <div class="property-row">
-                                <label>Y:</label>
-                                <input type="number" id="posY" step="0.01" value="0">
-                            </div>
-                            <div class="property-row">
-                                <label>Z:</label>
-                                <input type="number" id="posZ" step="0.01" value="0">
-                            </div>
+                            <p style="font-size: 10px; color: #888; margin: 0;">
+                                <strong>2D Mode:</strong> Arrange items from top-down view (easier layout)<br>
+                                <strong>3D Mode:</strong> See full 3D perspective of your assembly
+                            </p>
                         </div>
+                    </div>
 
-                        <div class="property-group">
-                            <h4>Rotation (degrees)</h4>
-                            <div class="property-row">
-                                <label>X:</label>
-                                <input type="number" id="rotX" step="1" value="0" min="-180" max="180">
-                            </div>
-                            <div class="property-row">
-                                <label>Y:</label>
-                                <input type="number" id="rotY" step="1" value="0" min="-180" max="180">
-                            </div>
-                            <div class="property-row">
-                                <label>Z:</label>
-                                <input type="number" id="rotZ" step="1" value="0" min="-180" max="180">
+                    <!-- Physics Controls -->
+                    <div class="io-panel">
+                        <h2>⚙️ Physics</h2>
+                        <div style="padding: 10px;">
+                            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <input type="checkbox" id="enableGravity" checked style="margin-right: 8px;">
+                                <span>Enable Gravity</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <input type="checkbox" id="enableSnapping" checked style="margin-right: 8px;">
+                                <span>Snap to Surface</span>
+                            </label>
+                            <div style="margin-top: 10px;">
+                                <label style="font-size: 11px; color: #888;">Snap Distance:</label>
+                                <input type="range" id="snapDistance" min="5" max="200" value="20" style="width: 100%;">
+                                <span id="snapDistanceValue" style="font-size: 11px; color: #888;">20mm</span>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="property-group">
-                            <h4>Scale</h4>
-                            <div class="property-row">
-                                <label>Uniform:</label>
-                                <input type="number" id="scaleUniform" step="0.1" value="1" min="0.1" max="10">
-                            </div>
+                    <!-- Selected Object Properties -->
+                    <div class="properties-panel">
+                        <h2>📦 Selected Object</h2>
+                        <div id="model-properties-content" class="properties-content">
+                            <p class="empty-message">Select a component to view properties</p>
                         </div>
+                    </div>
 
-                        <div class="property-group">
-                            <h4>Component Info</h4>
-                            <div class="property-row">
-                                <label>Name:</label>
-                                <input type="text" id="componentName" placeholder="Component name">
-                            </div>
-                            <div class="property-row">
-                                <label>Type:</label>
-                                <span id="componentType">-</span>
-                            </div>
-                            <div class="property-row">
-                                <label>Assignment:</label>
-                                <span id="componentAssignment">None</span>
-                            </div>
+                    <!-- Scene Objects List -->
+                    <div class="io-panel">
+                        <h2>🗂️ Scene Objects</h2>
+                        <div id="scene-objects-list" style="padding: 5px; max-height: 150px; overflow-y: auto;">
+                            <p class="empty-message">No objects in scene</p>
                         </div>
-
-                        <div class="property-actions">
-                            <button id="resetTransform" class="btn btn-secondary btn-small">Reset</button>
-                            <button id="deleteComponent3D" class="btn btn-danger btn-small">Delete</button>
-                        </div>
+                        <button id="clearScene" class="btn btn-danger btn-small" style="margin-top: 10px;">Clear All</button>
                     </div>
                 </div>
             </aside>
@@ -602,77 +524,19 @@
         </div>
     </div>
 
-    <!-- Assignment Modal -->
-    <div id="assignmentModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="document.getElementById('assignmentModal').style.display='none'">&times;</span>
-            <h2>Component to Ladder Assignment</h2>
-            
-            <!-- Single Component Assignment -->
-            <div id="singleAssignment" style="display: none;">
-                <h3 id="assignComponentName"></h3>
-                <div style="margin: 20px 0;">
-                    <label>Ladder Address:</label>
-                    <select id="ladderAddressSelect" style="width: 100%; padding: 8px; margin-top: 5px;">
-                        <option value="">-- Select Ladder Address --</option>
-                    </select>
-                </div>
-                <div id="currentAssignment" style="margin: 10px 0; padding: 10px; background: #2c3e50; border-radius: 4px;"></div>
-                <div style="margin-top: 20px;">
-                    <button id="confirmAssignment" class="btn btn-success">✅ Assign</button>
-                    <button onclick="document.getElementById('assignmentModal').style.display='none'" class="btn btn-secondary">Cancel</button>
-                </div>
-            </div>
-            
-            <!-- All Assignments View -->
-            <div id="allAssignments">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div>
-                        <span style="color: #4CAF50;">✅ Assigned: <strong id="assignedCount">0</strong></span>
-                        <span style="margin-left: 20px; color: #FF9800;">⚠️ Unassigned 3D: <strong id="unassigned3DCount">0</strong></span>
-                        <span style="margin-left: 20px; color: #FF9800;">⚠️ Unassigned Ladder: <strong id="unassignedLadderCount">0</strong></span>
-                    </div>
-                    <button id="clearAllAssignments" class="btn btn-danger btn-sm">Clear All</button>
-                </div>
-                
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead style="position: sticky; top: 0; background: #2c3e50;">
-                            <tr>
-                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">3D Component</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Type</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Ladder Address</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #34495e;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="assignmentTableBody">
-                            <tr>
-                                <td colspan="4" style="padding: 20px; text-align: center; color: #7f8c8d;">No assignments yet</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <h3 style="margin-top: 30px;">Unassigned 3D Components</h3>
-                <div id="unassigned3DList" style="max-height: 200px; overflow-y: auto; background: #2c3e50; padding: 10px; border-radius: 4px;">
-                    <p style="color: #7f8c8d;">No unassigned components</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Analysis Library -->
     <script src="analysis-v2.js"></script>
     
-    <!-- Three.js Library (for 3D model) -->
+    <!-- Three.js Library (for 3D viewer) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
-    <!-- Custom STEP Loader -->
-    <script src="js/model/loaders/stepLoader.js"></script>
+    
+    <!-- Rapier Physics Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.11.2/rapier.min.js"></script>
     
     <!-- PLC Simulator Modules (Load order is important!) -->
     <!-- 1. Configuration & Constants -->
@@ -702,67 +566,1278 @@
     <!-- 7. Entry Point -->
     <script src="js/ladder/main.js"></script>
     
-    <!-- 3D Model System -->
-    <!-- Configuration -->
-    <script src="js/model/config.js"></script>
-    
-    <!-- Shared Utilities -->
-    <script src="js/shared/utils.js"></script>
-    <script src="js/shared/assignment.js"></script>
-    <script src="js/shared/assignmentUI.js"></script>
-    <script src="js/shared/viewSwitching.js"></script>
-    
-    <!-- Mounting System -->
-    <script src="js/model/mounting.js"></script>
-    
-    <!-- Interaction System -->
-    <script src="js/model/interaction.js"></script>
-    
-    <!-- Property Editor -->
-    <script src="js/model/propertyEditor.js"></script>
-    
-    <!-- 3D Scene -->
-    <script src="js/model/scene.js"></script>
-    
-    <!-- 3D Model Initialization -->
-    <script src="js/model/init.js"></script>
-    
     <!-- 2D Drawing System -->
     <script src="js/drawing/canvas.js"></script>
     <script src="js/drawing/init.js"></script>
     
     <!-- View Toggle Controls -->
+    <script src="js/shared/viewSwitching.js"></script>
+    
+    <!-- 3D Model Viewer Script -->
     <script>
-        // Initialize view toggle buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            const viewLadderBtn = document.getElementById('viewLadder');
-            const viewDrawingBtn = document.getElementById('viewDrawing');
-            const view3DBtn = document.getElementById('view3D');
+        // Interactive 3D Scene Manager with Physics
+        class Interactive3DScene {
+            constructor(container, statusDiv) {
+                this.container = container;
+                this.statusDiv = statusDiv;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.orbitControls = null;
+                this.transformControls = null;
+                this.world = null; // Rapier physics world
+                this.rigidBodies = new Map(); // mesh -> rigidBody mapping
+                this.sceneObjects = []; // Track all placed objects
+                this.selectedObject = null;
+                this.snapEnabled = true;
+                this.snapDistance = 20;
+                this.gravityEnabled = true;
+                this.mountingSurfaces = []; // Walls, shelves, mounting plates
+                this.boundaryWalls = []; // Invisible collision walls
+                
+                // Mounting configuration (halved from original)
+                this.mountingConfig = {
+                    type: 'box', // 'box', 'plate', 'shelf'
+                    width: 300,
+                    height: 400,
+                    depth: 200
+                };
+                
+                this.init();
+            }
             
-            viewLadderBtn?.addEventListener('click', () => switchToView('ladder'));
-            viewDrawingBtn?.addEventListener('click', () => switchToView('drawing'));
-            view3DBtn?.addEventListener('click', () => switchToView('3d'));
+            async init() {
+                this.setupScene();
+                this.setupLighting();
+                this.setupControls();
+                await this.setupPhysics();
+                this.createMounting();
+                this.animate();
+                this.log('✅ Interactive 3D Scene initialized', 'success');
+            }
             
-            const createExampleBtn = document.getElementById('createExample3D');
-            const syncLadderBtn = document.getElementById('syncLadder3D');
+            setupScene() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xf0f0f0); // Light white/gray background
+                
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    this.container.clientWidth / this.container.clientHeight,
+                    0.1,
+                    10000
+                );
+                // Start in 2D top-view for easier arrangement
+                this.camera.position.set(0, 800, 0);
+                this.camera.lookAt(0, 0, 0);
+                this.is2DMode = true; // Track view mode
+                
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.insertBefore(this.renderer.domElement, this.statusDiv);
+            }
             
-            // 3D Model controls
-            createExampleBtn?.addEventListener('click', function() {
-                if (!window.modelScene) {
-                    alert('Please switch to 3D view first');
+            setupLighting() {
+                // Bright ambient light for well-lit scene
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                this.scene.add(ambientLight);
+                
+                // Main directional light (sun-like)
+                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight1.position.set(200, 300, 200);
+                directionalLight1.castShadow = true;
+                directionalLight1.shadow.mapSize.width = 2048;
+                directionalLight1.shadow.mapSize.height = 2048;
+                this.scene.add(directionalLight1);
+                
+                // Fill light from opposite side
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+                directionalLight2.position.set(-200, 200, -200);
+                this.scene.add(directionalLight2);
+                
+                // Additional top light
+                const topLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                topLight.position.set(0, 500, 0);
+                this.scene.add(topLight);
+            }
+            
+            setupControls() {
+                // Orbit controls for camera
+                this.orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.orbitControls.enableDamping = true;
+                this.orbitControls.dampingFactor = 0.05;
+                
+                // Start locked in 2D top-view mode
+                this.orbitControls.enableRotate = false;
+                this.orbitControls.maxPolarAngle = 0;
+                this.orbitControls.minPolarAngle = 0;
+                
+                // Transform controls for object manipulation
+                this.transformControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
+                this.transformControls.addEventListener('dragging-changed', (event) => {
+                    this.orbitControls.enabled = !event.value;
+                    
+                    // When user releases object after dragging
+                    if (!event.value && this.selectedObject) {
+                        const body = this.rigidBodies.get(this.selectedObject);
+                        if (body) {
+                            // Make it dynamic so it falls
+                            body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+                            // Reset velocities
+                            body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                            body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+                            this.log(`🎯 Released ${this.selectedObject.userData.name} - falling with gravity`, 'info');
+                        }
+                    }
+                });
+                this.transformControls.addEventListener('objectChange', () => {
+                    if (this.selectedObject) {
+                        this.checkSnapping(this.selectedObject);
+                        this.updatePropertiesPanel();
+                    }
+                });
+                this.scene.add(this.transformControls);
+                
+                // Handle window resize
+                const resizeObserver = new ResizeObserver(() => {
+                    this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                });
+                resizeObserver.observe(this.container);
+                
+                // Mouse picking
+                this.setupMousePicking();
+                
+                // Setup ViewCube
+                this.setupViewCube();
+            }
+            
+            setupViewCube() {
+                // Create mini Three.js scene for ViewCube
+                const canvas = document.getElementById('viewCubeCanvas');
+                if (!canvas) return;
+                
+                this.viewCubeScene = new THREE.Scene();
+                this.viewCubeCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+                this.viewCubeCamera.position.set(0, 0, 3);
+                
+                this.viewCubeRenderer = new THREE.WebGLRenderer({ 
+                    canvas: canvas, 
+                    alpha: true,
+                    antialias: true
+                });
+                this.viewCubeRenderer.setSize(150, 150);
+                this.viewCubeRenderer.setClearColor(0x000000, 0);
+                
+                // Create cube geometry with different colors per face
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const materials = [
+                    new THREE.MeshBasicMaterial({ color: 0xf39c12 }), // Right - Orange
+                    new THREE.MeshBasicMaterial({ color: 0xe74c3c }), // Left - Red
+                    new THREE.MeshBasicMaterial({ color: 0x3498db }), // Top - Blue
+                    new THREE.MeshBasicMaterial({ color: 0x95a5a6 }), // Bottom - Gray
+                    new THREE.MeshBasicMaterial({ color: 0x2ecc71 }), // Front - Green
+                    new THREE.MeshBasicMaterial({ color: 0x9b59b6 })  // Back - Purple
+                ];
+                
+                this.viewCubeMesh = new THREE.Mesh(geometry, materials);
+                this.viewCubeScene.add(this.viewCubeMesh);
+                
+                // Add edges for better visibility
+                const edges = new THREE.EdgesGeometry(geometry);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+                const wireframe = new THREE.LineSegments(edges, lineMaterial);
+                this.viewCubeMesh.add(wireframe);
+                
+                // Mouse interaction with ViewCube
+                canvas.addEventListener('click', (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                    
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.setFromCamera({ x, y }, this.viewCubeCamera);
+                    const intersects = raycaster.intersectObject(this.viewCubeMesh);
+                    
+                    if (intersects.length > 0) {
+                        const faceIndex = Math.floor(intersects[0].faceIndex / 2);
+                        const views = ['right', 'left', 'top', 'bottom', 'front', 'back'];
+                        this.setView(views[faceIndex]);
+                    }
+                });
+                
+                // Render ViewCube initially
+                this.renderViewCube();
+            }
+            
+            renderViewCube() {
+                if (!this.viewCubeMesh || !this.viewCubeRenderer) return;
+                
+                // Sync ViewCube rotation with main camera
+                const mainCameraDir = new THREE.Vector3();
+                this.camera.getWorldDirection(mainCameraDir);
+                
+                // Copy main camera rotation to ViewCube
+                this.viewCubeMesh.quaternion.copy(this.camera.quaternion);
+                this.viewCubeMesh.quaternion.invert();
+                
+                this.viewCubeRenderer.render(this.viewCubeScene, this.viewCubeCamera);
+            }
+            
+            setView(viewName) {
+                const { width, height, depth } = this.mountingConfig;
+                const distance = Math.max(width, height, depth) * 1.5;
+                
+                // Store target for smooth transition
+                const targetPos = { x: 0, y: 0, z: 0 };
+                const targetLookAt = { x: 0, y: height / 2, z: 0 };
+                
+                switch(viewName) {
+                    case 'top':
+                        targetPos.x = 0;
+                        targetPos.y = distance;
+                        targetPos.z = 0;
+                        break;
+                    case 'bottom':
+                        targetPos.x = 0;
+                        targetPos.y = -distance;
+                        targetPos.z = 0;
+                        break;
+                    case 'front':
+                        targetPos.x = 0;
+                        targetPos.y = height / 2;
+                        targetPos.z = distance;
+                        break;
+                    case 'back':
+                        targetPos.x = 0;
+                        targetPos.y = height / 2;
+                        targetPos.z = -distance;
+                        break;
+                    case 'left':
+                        targetPos.x = -distance;
+                        targetPos.y = height / 2;
+                        targetPos.z = 0;
+                        break;
+                    case 'right':
+                        targetPos.x = distance;
+                        targetPos.y = height / 2;
+                        targetPos.z = 0;
+                        break;
+                }
+                
+                // Animate camera to new position
+                this.animateCamera(targetPos, targetLookAt);
+                this.log(`📷 View changed to: ${viewName.toUpperCase()}`, 'info');
+            }
+            
+            animateCamera(targetPos, targetLookAt) {
+                const startPos = this.camera.position.clone();
+                const startLookAt = this.orbitControls.target.clone();
+                
+                const duration = 800; // ms
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Ease-in-out function
+                    const eased = progress < 0.5 
+                        ? 4 * progress * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                    
+                    // Interpolate camera position
+                    this.camera.position.x = startPos.x + (targetPos.x - startPos.x) * eased;
+                    this.camera.position.y = startPos.y + (targetPos.y - startPos.y) * eased;
+                    this.camera.position.z = startPos.z + (targetPos.z - startPos.z) * eased;
+                    
+                    // Interpolate look-at target
+                    this.orbitControls.target.x = startLookAt.x + (targetLookAt.x - startLookAt.x) * eased;
+                    this.orbitControls.target.y = startLookAt.y + (targetLookAt.y - startLookAt.y) * eased;
+                    this.orbitControls.target.z = startLookAt.z + (targetLookAt.z - startLookAt.z) * eased;
+                    
+                    this.orbitControls.update();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+            
+            switchTo2DView() {
+                this.is2DMode = true;
+                const { width, height, depth } = this.mountingConfig;
+                const distance = Math.max(width, depth) * 2;
+                
+                // Top-down orthographic-like view
+                this.animateCamera(
+                    { x: 0, y: distance, z: 0 },
+                    { x: 0, y: 0, z: 0 }
+                );
+                
+                // Restrict orbit controls for 2D mode
+                this.orbitControls.enableRotate = false;
+                this.orbitControls.maxPolarAngle = 0; // Lock to top view
+                this.orbitControls.minPolarAngle = 0;
+                
+                this.log('📐 Switched to 2D Top View - Arrange items easily!', 'info');
+            }
+            
+            switchTo3DView() {
+                this.is2DMode = false;
+                const { width, height, depth } = this.mountingConfig;
+                const distance = Math.max(width, height, depth) * 1.5;
+                
+                // 3D perspective view
+                this.animateCamera(
+                    { x: distance * 0.7, y: distance * 0.5, z: distance * 0.7 },
+                    { x: 0, y: height / 2, z: 0 }
+                );
+                
+                // Re-enable orbit controls for 3D mode
+                this.orbitControls.enableRotate = true;
+                this.orbitControls.maxPolarAngle = Math.PI; // Full rotation
+                this.orbitControls.minPolarAngle = 0;
+                
+                this.log('🎲 Switched to 3D View - See your assembly in 3D!', 'success');
+            }
+            
+            setupMousePicking() {
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+                
+                this.renderer.domElement.addEventListener('click', (event) => {
+                    if (this.transformControls.dragging) return;
+                    
+                    const rect = this.renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                    
+                    raycaster.setFromCamera(mouse, this.camera);
+                    const intersects = raycaster.intersectObjects(this.sceneObjects, true);
+                    
+                    if (intersects.length > 0) {
+                        // Find the top-level parent object (for OBJ groups)
+                        let selectedObj = intersects[0].object;
+                        while (selectedObj.parent && !this.sceneObjects.includes(selectedObj)) {
+                            selectedObj = selectedObj.parent;
+                        }
+                        this.selectObject(selectedObj);
+                    } else {
+                        this.deselectObject();
+                    }
+                });
+            }
+            
+            async setupPhysics() {
+                try {
+                    await RAPIER.init();
+                    const gravity = { x: 0.0, y: -9.81, z: 0.0 };
+                    this.world = new RAPIER.World(gravity);
+                    this.log('✅ Physics engine initialized', 'success');
+                } catch (error) {
+                    this.log('⚠️ Physics engine not available', 'warning');
+                }
+            }
+            
+            createMounting() {
+                const { type, width, height, depth } = this.mountingConfig;
+                const wallThickness = 5;
+                
+                // Clear existing mounting structures
+                this.mountingSurfaces.forEach(wall => this.scene.remove(wall));
+                this.boundaryWalls.forEach(wall => {
+                    this.scene.remove(wall);
+                    if (this.world) {
+                        const body = this.rigidBodies.get(wall);
+                        if (body) this.world.removeRigidBody(body);
+                    }
+                });
+                this.mountingSurfaces = [];
+                this.boundaryWalls = [];
+                
+                if (type === 'box') {
+                    this.createBox(width, height, depth, wallThickness);
+                } else if (type === 'plate') {
+                    this.createPlate(width, height, wallThickness);
+                } else if (type === 'shelf') {
+                    this.createShelf(width, height, depth, wallThickness);
+                }
+                
+                // Add/update grid helper
+                const existingGrid = this.scene.children.find(obj => obj.type === 'GridHelper');
+                if (existingGrid) this.scene.remove(existingGrid);
+                
+                const gridSize = Math.max(width, depth);
+                const gridHelper = new THREE.GridHelper(gridSize, 20, 0x444444, 0x222222);
+                gridHelper.position.y = 1;
+                this.scene.add(gridHelper);
+                
+                this.log(`✅ ${type.toUpperCase()} created: ${width}×${height}×${depth}mm`, 'success');
+            }
+            
+            createBox(width, height, depth, thickness) {
+                // Back wall (mounting plate) - visible
+                const backWall = this.createWall(width, height, thickness, 0x3498db, true);
+                backWall.position.set(0, height / 2, -depth / 2);
+                backWall.userData.isMountingSurface = true;
+                backWall.userData.normal = new THREE.Vector3(0, 0, 1);
+                this.mountingSurfaces.push(backWall);
+                
+                // Bottom floor - visible
+                const floor = this.createWall(width, thickness, depth, 0x34495e, true);
+                floor.position.set(0, 0, 0);
+                floor.userData.isMountingSurface = true;
+                floor.userData.normal = new THREE.Vector3(0, 1, 0);
+                this.mountingSurfaces.push(floor);
+                
+                // Side walls - visible
+                const leftWall = this.createWall(thickness, height, depth, 0x2c3e50, true);
+                leftWall.position.set(-width / 2, height / 2, 0);
+                leftWall.userData.isMountingSurface = true;
+                leftWall.userData.normal = new THREE.Vector3(1, 0, 0);
+                this.mountingSurfaces.push(leftWall);
+                
+                const rightWall = this.createWall(thickness, height, depth, 0x2c3e50, true);
+                rightWall.position.set(width / 2, height / 2, 0);
+                rightWall.userData.isMountingSurface = true;
+                rightWall.userData.normal = new THREE.Vector3(-1, 0, 0);
+                this.mountingSurfaces.push(rightWall);
+                
+                // Top boundary (invisible collision)
+                const topWall = this.createWall(width, thickness, depth, 0xff0000, false);
+                topWall.position.set(0, height, 0);
+                topWall.visible = false;
+                this.boundaryWalls.push(topWall);
+                
+                // Front boundary (invisible collision) 
+                const frontWall = this.createWall(width, height, thickness, 0xff0000, false);
+                frontWall.position.set(0, height / 2, depth / 2);
+                frontWall.visible = false;
+                this.boundaryWalls.push(frontWall);
+            }
+            
+            createPlate(width, height, thickness) {
+                // Just a back plate - vertical mounting surface
+                const plate = this.createWall(width, height, thickness, 0x3498db, true);
+                plate.position.set(0, height / 2, 0);
+                plate.userData.isMountingSurface = true;
+                plate.userData.normal = new THREE.Vector3(0, 0, 1);
+                this.mountingSurfaces.push(plate);
+                
+                // Floor for catching objects
+                const floor = this.createWall(width * 2, thickness, width * 2, 0x34495e, true);
+                floor.position.set(0, -50, 0);
+                floor.userData.isMountingSurface = true;
+                floor.userData.normal = new THREE.Vector3(0, 1, 0);
+                this.mountingSurfaces.push(floor);
+            }
+            
+            createShelf(width, height, depth, thickness) {
+                // Back wall
+                const backWall = this.createWall(width, height, thickness, 0x3498db, true);
+                backWall.position.set(0, height / 2, -depth / 2);
+                backWall.userData.isMountingSurface = true;
+                backWall.userData.normal = new THREE.Vector3(0, 0, 1);
+                this.mountingSurfaces.push(backWall);
+                
+                // Bottom shelf
+                const floor = this.createWall(width, thickness, depth, 0x34495e, true);
+                floor.position.set(0, 0, 0);
+                floor.userData.isMountingSurface = true;
+                floor.userData.normal = new THREE.Vector3(0, 1, 0);
+                this.mountingSurfaces.push(floor);
+                
+                // Side walls
+                const leftWall = this.createWall(thickness, height, depth, 0x2c3e50, true);
+                leftWall.position.set(-width / 2, height / 2, 0);
+                leftWall.userData.isMountingSurface = true;
+                leftWall.userData.normal = new THREE.Vector3(1, 0, 0);
+                this.mountingSurfaces.push(leftWall);
+                
+                const rightWall = this.createWall(thickness, height, depth, 0x2c3e50, true);
+                rightWall.position.set(width / 2, height / 2, 0);
+                rightWall.userData.isMountingSurface = true;
+                rightWall.userData.normal = new THREE.Vector3(-1, 0, 0);
+                this.mountingSurfaces.push(rightWall);
+                
+                // Top boundary (invisible)
+                const topWall = this.createWall(width, thickness, depth, 0xff0000, false);
+                topWall.position.set(0, height, 0);
+                topWall.visible = false;
+                this.boundaryWalls.push(topWall);
+                
+                // NO front wall - open front for shelf
+            }
+            
+            createWall(width, height, depth, color, visible = true) {
+                const geometry = new THREE.BoxGeometry(width, height, depth);
+                const material = new THREE.MeshPhongMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: visible ? 0.3 : 0,
+                    side: THREE.DoubleSide
+                });
+                const wall = new THREE.Mesh(geometry, material);
+                wall.receiveShadow = true;
+                this.scene.add(wall);
+                
+                // Add physics body for collision (always, even if invisible)
+                if (this.world) {
+                    const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+                    const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(width / 2, height / 2, depth / 2);
+                    this.world.createCollider(colliderDesc, rigidBody);
+                    rigidBody.setTranslation(wall.position, true);
+                    this.rigidBodies.set(wall, rigidBody);
+                }
+                
+                return wall;
+            }
+            
+            rebuildMounting() {
+                // Save current objects
+                const savedObjects = this.sceneObjects.map(obj => ({
+                    mesh: obj,
+                    position: obj.position.clone(),
+                    rotation: obj.rotation.clone()
+                }));
+                
+                // Rebuild mounting structure
+                this.createMounting();
+                
+                // Restore objects and update their physics
+                savedObjects.forEach(({ mesh, position, rotation }) => {
+                    mesh.position.copy(position);
+                    mesh.rotation.copy(rotation);
+                    this.updatePhysicsBody(mesh);
+                });
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                // Update physics
+                if (this.world) {
+                    this.world.step();
+                    
+                    // Sync Three.js meshes with physics bodies
+                    this.sceneObjects.forEach(obj => {
+                        const body = this.rigidBodies.get(obj);
+                        if (body) {
+                            // Check if object is being dragged by transform controls
+                            const isDragging = this.selectedObject === obj && this.transformControls.dragging;
+                            
+                            if (isDragging) {
+                                // User is dragging - update physics from mesh position
+                                body.setTranslation(obj.position, true);
+                                body.setRotation(obj.quaternion, true);
+                                body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                                body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+                            } else {
+                                // Physics controls the mesh
+                                const position = body.translation();
+                                obj.position.set(position.x, position.y, position.z);
+                                const rotation = body.rotation();
+                                obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+                            }
+                            
+                            // Always enforce boundaries
+                            this.enforceObjectBoundaries(obj);
+                        }
+                    });
+                }
+                
+                this.orbitControls.update();
+                this.renderer.render(this.scene, this.camera);
+                
+                // Update ViewCube to match main camera rotation
+                this.renderViewCube();
+            }
+            
+            enforceObjectBoundaries(obj) {
+                // Ensure object stays within mounting boundaries
+                const { width, height, depth } = this.mountingConfig;
+                const size = obj.userData.size || new THREE.Vector3(50, 50, 50);
+                
+                const halfWidth = width / 2;
+                const halfDepth = depth / 2;
+                
+                let corrected = false;
+                
+                // X boundaries (left/right)
+                if (obj.position.x - size.x / 2 < -halfWidth) {
+                    obj.position.x = -halfWidth + size.x / 2;
+                    corrected = true;
+                }
+                if (obj.position.x + size.x / 2 > halfWidth) {
+                    obj.position.x = halfWidth - size.x / 2;
+                    corrected = true;
+                }
+                
+                // Y boundaries (floor/ceiling)
+                if (obj.position.y - size.y / 2 < 0) {
+                    obj.position.y = size.y / 2;
+                    corrected = true;
+                }
+                if (obj.position.y + size.y / 2 > height) {
+                    obj.position.y = height - size.y / 2;
+                    corrected = true;
+                }
+                
+                // Z boundaries (back/front) - only for box and shelf
+                if (this.mountingConfig.type !== 'plate') {
+                    if (obj.position.z - size.z / 2 < -halfDepth) {
+                        obj.position.z = -halfDepth + size.z / 2;
+                        corrected = true;
+                    }
+                    if (obj.position.z + size.z / 2 > halfDepth) {
+                        obj.position.z = halfDepth - size.z / 2;
+                        corrected = true;
+                    }
+                }
+                
+                // Update physics body if corrected
+                if (corrected) {
+                    this.updatePhysicsBody(obj);
+                }
+            }
+            
+            async loadSTL(file, name, modelData) {
+                try {
+                    this.log(`🔄 Loading ${name}...`, 'info');
+                    
+                    const loader = new THREE.STLLoader();
+                    const geometry = await new Promise((resolve, reject) => {
+                        loader.load(file, resolve, undefined, reject);
+                    });
+                    
+                    geometry.computeVertexNormals();
+                    geometry.center();
+                    
+                    const material = new THREE.MeshPhongMaterial({
+                        color: 0x00aaff,
+                        specular: 0x111111,
+                        shininess: 200
+                    });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    mesh.userData.name = name;
+                    mesh.userData.modelData = modelData;
+                    
+                    // Calculate mesh size
+                    geometry.computeBoundingBox();
+                    const bbox = geometry.boundingBox;
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    
+                    // Position on floor with slight random X/Z offset to prevent stacking
+                    // Since geometry is centered, bottom is at -size.y/2, so position at size.y/2 to put bottom at Y=0
+                    const randomOffset = (Math.random() - 0.5) * 100;
+                    mesh.position.set(randomOffset, size.y / 2 + 2, randomOffset);
+                    
+                    this.scene.add(mesh);
+                    this.sceneObjects.push(mesh);
+                    
+                    // Add physics body
+                    this.addPhysicsBody(mesh, geometry);
+                    
+                    this.log(`✅ ${name} loaded and placed on floor!`, 'success');
+                    this.updateSceneObjectsList();
+                    // Don't auto-select - let it rest on floor naturally
+                    // this.selectObject(mesh);
+                    
+                } catch (error) {
+                    this.log(`❌ Failed to load ${name}: ${error.message}`, 'error');
+                }
+            }
+            
+            async loadOBJ(objFile, mtlFile, name, modelData) {
+                try {
+                    this.log(`🔄 Loading ${name} (OBJ+MTL with materials)...`, 'info');
+                    
+                    // Extract directory path from objFile for MTL texture loading
+                    const objPath = objFile.substring(0, objFile.lastIndexOf('/') + 1);
+                    
+                    // Load MTL file first
+                    const mtlLoader = new THREE.MTLLoader();
+                    mtlLoader.setPath(objPath);
+                    
+                    const materials = await new Promise((resolve, reject) => {
+                        mtlLoader.load(
+                            mtlFile.split('/').pop(), // Just filename for MTL
+                            resolve,
+                            undefined,
+                            reject
+                        );
+                    });
+                    
+                    materials.preload();
+                    this.log(`✅ Materials loaded for ${name}`, 'info');
+                    
+                    // Load OBJ file with materials
+                    const objLoader = new THREE.OBJLoader();
+                    objLoader.setMaterials(materials);
+                    
+                    const object = await new Promise((resolve, reject) => {
+                        objLoader.load(objFile, resolve, undefined, reject);
+                    });
+                    
+                    // Process the loaded object
+                    object.traverse((child) => {
+                        if (child instanceof THREE.Mesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            // Ensure material has emissive property for selection
+                            if (child.material && !child.material.emissive) {
+                                child.material.emissive = new THREE.Color(0x000000);
+                            }
+                        }
+                    });
+                    
+                    object.userData.name = name;
+                    object.userData.modelData = modelData;
+                    
+                    // SCALE UP: OBJ files are often in meters, we need millimeters
+                    // Scale by 1000 to convert meters to millimeters
+                    object.scale.set(1000, 1000, 1000);
+                    
+                    // Calculate bounding box AFTER scaling
+                    const bbox = new THREE.Box3().setFromObject(object);
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    
+                    this.log(`📏 Object size after scaling: ${size.x.toFixed(1)}×${size.y.toFixed(1)}×${size.z.toFixed(1)}mm`, 'info');
+                    
+                    // Center the object horizontally, but keep bottom at Y=0
+                    const center = new THREE.Vector3();
+                    bbox.getCenter(center);
+                    
+                    // Only center X and Z, adjust Y to put bottom at origin
+                    object.position.set(-center.x, -bbox.min.y, -center.z);
+                    
+                    // Position on floor with random offset
+                    const randomOffset = (Math.random() - 0.5) * 100;
+                    object.position.add(new THREE.Vector3(randomOffset, 2, randomOffset));
+                    
+                    this.scene.add(object);
+                    this.sceneObjects.push(object);
+                    
+                    // Add physics body using bounding box
+                    this.addPhysicsBodyFromBBox(object, size);
+                    
+                    this.log(`✅ ${name} loaded! Size: ${size.x.toFixed(1)}×${size.y.toFixed(1)}×${size.z.toFixed(1)}mm`, 'success');
+                    this.log(`📍 Position: (${object.position.x.toFixed(1)}, ${object.position.y.toFixed(1)}, ${object.position.z.toFixed(1)})`, 'info');
+                    this.updateSceneObjectsList();
+                    
+                    // Select the object so user can see it
+                    this.selectObject(object);
+                    
+                } catch (error) {
+                    this.log(`❌ Failed to load ${name}: ${error.message}`, 'error');
+                    console.error('OBJ/MTL loading error:', error);
+                }
+            }
+            
+            addPhysicsBodyFromBBox(object, size) {
+                // Store size even if physics is not available
+                object.userData.size = size;
+                
+                if (!this.world) {
+                    this.log(`⚠️ Physics not available for ${object.userData.name}, object will be static`, 'warning');
                     return;
                 }
-                createExampleSetup();
-            });
+                
+                const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
+                    .setTranslation(object.position.x, object.position.y, object.position.z)
+                    .setLinearDamping(2.0)
+                    .setAngularDamping(2.0);
+                const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+                
+                const colliderDesc = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2)
+                    .setRestitution(0.1)
+                    .setFriction(0.9)
+                    .setDensity(1.0);
+                this.world.createCollider(colliderDesc, rigidBody);
+                
+                this.rigidBodies.set(object, rigidBody);
+            }
             
-            syncLadderBtn?.addEventListener('click', function() {
-                const result = syncLadderTo3D();
-                if (result) {
-                    alert(`Found ${result.io.inputs.length} inputs and ${result.io.outputs.length} outputs\n` +
-                          `Suggested ${result.suggestions.length} components`);
-                    console.table(result.suggestions);
+            addPhysicsBody(mesh, geometry) {
+                // Compute bounding box for collider
+                geometry.computeBoundingBox();
+                const bbox = geometry.boundingBox;
+                const size = new THREE.Vector3();
+                bbox.getSize(size);
+                
+                // Store size for boundary checking
+                mesh.userData.size = size;
+                
+                if (!this.world) {
+                    this.log(`⚠️ Physics not available for ${mesh.userData.name}, object will be static`, 'warning');
+                    return;
                 }
-            });
+                
+                const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
+                    .setTranslation(mesh.position.x, mesh.position.y, mesh.position.z)
+                    .setLinearDamping(2.0) // Add damping to reduce bouncing
+                    .setAngularDamping(2.0);
+                const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+                
+                const colliderDesc = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2)
+                    .setRestitution(0.1) // Low bounce
+                    .setFriction(0.9) // High friction to prevent sliding
+                    .setDensity(1.0);
+                this.world.createCollider(colliderDesc, rigidBody);
+                
+                this.rigidBodies.set(mesh, rigidBody);
+            }
+            
+            updatePhysicsBody(mesh) {
+                const body = this.rigidBodies.get(mesh);
+                if (body) {
+                    body.setTranslation(mesh.position, true);
+                    body.setRotation(mesh.quaternion, true);
+                    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+                    
+                    // Check boundaries when manually moving
+                    this.enforceObjectBoundaries(mesh);
+                }
+            }
+            
+            checkSnapping(mesh) {
+                if (!this.snapEnabled) return;
+                
+                const meshBox = new THREE.Box3().setFromObject(mesh);
+                const meshSize = new THREE.Vector3();
+                meshBox.getSize(meshSize);
+                
+                for (const surface of this.mountingSurfaces) {
+                    const surfaceBox = new THREE.Box3().setFromObject(surface);
+                    
+                    // Snap to back wall (mounting plate)
+                    if (surface.userData.normal && surface.userData.normal.z > 0.9) {
+                        const targetZ = surfaceBox.max.z + meshSize.z / 2 + 2;
+                        const distanceToSurface = Math.abs(meshBox.min.z - surfaceBox.max.z);
+                        
+                        if (distanceToSurface < this.snapDistance) {
+                            mesh.position.z = targetZ;
+                            this.log(`🧲 Snapped ${mesh.userData.name} to mounting plate`, 'success');
+                        }
+                    }
+                    // Snap to floor
+                    else if (surface.userData.normal && surface.userData.normal.y > 0.9) {
+                        const distanceToFloor = Math.abs(meshBox.min.y - surfaceBox.max.y);
+                        
+                        if (distanceToFloor < this.snapDistance) {
+                            // Calculate the offset needed to move bottom of object to floor surface
+                            const bottomOffset = meshBox.min.y - mesh.position.y;
+                            const targetY = surfaceBox.max.y - bottomOffset;
+                            mesh.position.y = targetY;
+                            this.log(`🧲 Snapped ${mesh.userData.name} to floor`, 'success');
+                        }
+                    }
+                    // Snap to side walls
+                    else if (surface.userData.normal) {
+                        // Left wall (normal points right, +X)
+                        if (surface.userData.normal.x > 0.9) {
+                            const targetX = surfaceBox.max.x + meshSize.x / 2 + 2;
+                            const distanceToWall = Math.abs(meshBox.min.x - surfaceBox.max.x);
+                            
+                            if (distanceToWall < this.snapDistance) {
+                                mesh.position.x = targetX;
+                                this.log(`🧲 Snapped ${mesh.userData.name} to left wall`, 'success');
+                            }
+                        }
+                        // Right wall (normal points left, -X)
+                        else if (surface.userData.normal.x < -0.9) {
+                            const targetX = surfaceBox.min.x - meshSize.x / 2 - 2;
+                            const distanceToWall = Math.abs(meshBox.max.x - surfaceBox.min.x);
+                            
+                            if (distanceToWall < this.snapDistance) {
+                                mesh.position.x = targetX;
+                                this.log(`🧲 Snapped ${mesh.userData.name} to right wall`, 'success');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            selectObject(obj) {
+                if (this.selectedObject === obj) return;
+                
+                this.deselectObject();
+                this.selectedObject = obj;
+                this.transformControls.attach(obj);
+                
+                // Highlight selected object (handle both Mesh and Group)
+                if (obj.material) {
+                    // Single Mesh (STL files)
+                    obj.material.emissive = new THREE.Color(0x00ff00);
+                    obj.material.emissiveIntensity = 0.3;
+                } else {
+                    // Group with multiple meshes (OBJ files)
+                    obj.traverse((child) => {
+                        if (child instanceof THREE.Mesh && child.material) {
+                            if (child.material.emissive) {
+                                child.material.emissive = new THREE.Color(0x00ff00);
+                                child.material.emissiveIntensity = 0.3;
+                            }
+                        }
+                    });
+                }
+                
+                this.log(`✅ Selected: ${obj.userData.name}`, 'info');
+                this.updatePropertiesPanel();
+            }
+            
+            deselectObject() {
+                if (this.selectedObject) {
+                    // Remove highlight (handle both Mesh and Group)
+                    if (this.selectedObject.material) {
+                        // Single Mesh (STL files)
+                        this.selectedObject.material.emissive = new THREE.Color(0x000000);
+                    } else {
+                        // Group with multiple meshes (OBJ files)
+                        this.selectedObject.traverse((child) => {
+                            if (child instanceof THREE.Mesh && child.material) {
+                                if (child.material.emissive) {
+                                    child.material.emissive = new THREE.Color(0x000000);
+                                }
+                            }
+                        });
+                    }
+                    
+                    this.transformControls.detach();
+                    this.selectedObject = null;
+                    this.updatePropertiesPanel();
+                }
+            }
+            
+            updatePropertiesPanel() {
+                const panel = document.getElementById('model-properties-content');
+                if (!panel) return;
+                
+                if (this.selectedObject) {
+                    const obj = this.selectedObject;
+                    const pos = obj.position;
+                    const rot = obj.rotation;
+                    
+                    panel.innerHTML = `
+                        <div style="padding: 10px; font-size: 12px;">
+                            <h3 style="margin-top: 0; color: #2ecc71;">${obj.userData.name}</h3>
+                            <div style="margin: 10px 0;">
+                                <strong>Position (mm):</strong><br>
+                                X: ${pos.x.toFixed(1)}<br>
+                                Y: ${pos.y.toFixed(1)}<br>
+                                Z: ${pos.z.toFixed(1)}
+                            </div>
+                            <div style="margin: 10px 0;">
+                                <strong>Rotation (deg):</strong><br>
+                                X: ${(rot.x * 180 / Math.PI).toFixed(1)}°<br>
+                                Y: ${(rot.y * 180 / Math.PI).toFixed(1)}°<br>
+                                Z: ${(rot.z * 180 / Math.PI).toFixed(1)}°
+                            </div>
+                            <div style="margin-top: 15px;">
+                                <button onclick="viewer3D.transformControls.setMode('translate')" class="btn btn-secondary btn-small">Move</button>
+                                <button onclick="viewer3D.transformControls.setMode('rotate')" class="btn btn-secondary btn-small">Rotate</button>
+                            </div>
+                            <button onclick="viewer3D.deleteSelected()" class="btn btn-danger btn-small" style="margin-top: 10px; width: 100%;">Delete</button>
+                        </div>
+                    `;
+                } else {
+                    panel.innerHTML = '<p class="empty-message">Select a component to view properties</p>';
+                }
+            }
+            
+            updateSceneObjectsList() {
+                const list = document.getElementById('scene-objects-list');
+                if (!list) return;
+                
+                if (this.sceneObjects.length === 0) {
+                    list.innerHTML = '<p class="empty-message">No objects in scene</p>';
+                } else {
+                    list.innerHTML = this.sceneObjects.map((obj, index) => `
+                        <div style="padding: 5px; margin: 3px 0; background: #34495e; border-radius: 3px; cursor: pointer; font-size: 11px;"
+                             onclick="viewer3D.selectObject(viewer3D.sceneObjects[${index}])">
+                            ${obj.userData.name}
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            deleteSelected() {
+                if (!this.selectedObject) return;
+                
+                const obj = this.selectedObject;
+                this.scene.remove(obj);
+                const index = this.sceneObjects.indexOf(obj);
+                if (index > -1) this.sceneObjects.splice(index, 1);
+                
+                // Remove physics body
+                const body = this.rigidBodies.get(obj);
+                if (body && this.world) {
+                    this.world.removeRigidBody(body);
+                    this.rigidBodies.delete(obj);
+                }
+                
+                this.log(`🗑️ Deleted: ${obj.userData.name}`, 'info');
+                this.deselectObject();
+                this.updateSceneObjectsList();
+            }
+            
+            clearScene() {
+                this.sceneObjects.forEach(obj => {
+                    this.scene.remove(obj);
+                    const body = this.rigidBodies.get(obj);
+                    if (body && this.world) {
+                        this.world.removeRigidBody(body);
+                    }
+                });
+                this.sceneObjects = [];
+                this.rigidBodies.clear();
+                this.deselectObject();
+                this.updateSceneObjectsList();
+                this.log('🗑️ Scene cleared', 'info');
+            }
+            
+            log(message, type = 'info') {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.style.color = type === 'success' ? '#2ecc71' :
+                                   type === 'error' ? '#e74c3c' :
+                                   type === 'warning' ? '#f39c12' : '#3498db';
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                this.statusDiv.appendChild(entry);
+                this.statusDiv.scrollTop = this.statusDiv.scrollHeight;
+                
+                // Keep only last 20 messages
+                while (this.statusDiv.children.length > 20) {
+                    this.statusDiv.removeChild(this.statusDiv.firstChild);
+                }
+            }
+        }
+        
+        // STL Model Catalog (inline version)
+        class STLModelCatalog {
+            constructor() {
+                this.models = [];
+                this.modelsLoaded = false;
+            }
+            
+            async loadCatalog() {
+                if (this.modelsLoaded) return this.models;
+                
+                try {
+                    const response = await fetch('libs/model/catalog.json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.models = data.models || [];
+                    } else {
+                        this.models = this.getFallbackModels();
+                    }
+                    this.modelsLoaded = true;
+                    return this.models;
+                } catch (error) {
+                    this.models = this.getFallbackModels();
+                    this.modelsLoaded = true;
+                    return this.models;
+                }
+            }
+            
+            getFallbackModels() {
+                return [
+                    { name: 'Motor Controller', file: 'motor-controller.stl', format: 'stl', size: '23MB', type: 'motor' },
+                    { name: 'PLC', file: 'plc.stl', format: 'stl', size: '26MB', type: 'cpu' },
+                    { name: 'Circuit Breaker', file: 'circuit-breaker.stl', format: 'stl', size: '43MB', type: 'circuit-breaker' },
+                    { name: 'Emergency Push Button', file: 'emergency-push-button.stl', format: 'stl', size: '12MB', type: 'button' },
+                    { name: 'PCB Mount Relay', file: 'pcb-mount-relay.stl', format: 'stl', size: '0.8MB', type: 'relay' },
+                    { name: 'Stack LED Light', file: 'stack-led-light.stl', format: 'stl', size: '14MB', type: 'led' },
+                    { name: 'PCB Board', file: 'pcb.obj', mtlFile: 'pcb.mtl', format: 'obj', size: '1MB', type: 'pcb' }
+                ];
+            }
+            
+            getAllModels() {
+                return this.models;
+            }
+        }
+        
+        // Initialize Interactive 3D Scene
+        let viewer3D = null;
+        const catalog = new STLModelCatalog();
+        
+        function init3DViewer() {
+            if (viewer3D) return; // Already initialized
+            
+            const container = document.getElementById('model-viewer-container');
+            const statusDiv = document.getElementById('model-viewer-status');
+            
+            viewer3D = new Interactive3DScene(container, statusDiv);
+            
+            // Setup physics controls
+            setupPhysicsControls();
+            
+            // Setup view mode controls
+            setupViewModeControls();
+        }
+        
+        function setupViewModeControls() {
+            const view2DBtn = document.getElementById('view2D');
+            const view3DBtn = document.getElementById('view3D');
+            
+            if (view2DBtn && view3DBtn) {
+                // Start in 2D mode (button already highlighted)
+                view2DBtn.classList.add('btn-success');
+                view2DBtn.classList.remove('btn-secondary');
+                view3DBtn.classList.remove('btn-success');
+                view3DBtn.classList.add('btn-secondary');
+                
+                view2DBtn.addEventListener('click', () => {
+                    if (viewer3D) {
+                        viewer3D.switchTo2DView();
+                        view2DBtn.classList.add('btn-success');
+                        view2DBtn.classList.remove('btn-secondary');
+                        view3DBtn.classList.remove('btn-success');
+                        view3DBtn.classList.add('btn-secondary');
+                    }
+                });
+                
+                view3DBtn.addEventListener('click', () => {
+                    if (viewer3D) {
+                        viewer3D.switchTo3DView();
+                        view3DBtn.classList.add('btn-success');
+                        view3DBtn.classList.remove('btn-secondary');
+                        view2DBtn.classList.remove('btn-success');
+                        view2DBtn.classList.add('btn-secondary');
+                    }
+                });
+            }
+        }
+        
+        function setupPhysicsControls() {
+            // Mounting configuration controls
+            const mountingType = document.getElementById('mountingType');
+            const mountingWidth = document.getElementById('mountingWidth');
+            const mountingHeight = document.getElementById('mountingHeight');
+            const mountingDepth = document.getElementById('mountingDepth');
+            const applyMountingBtn = document.getElementById('applyMounting');
+            
+            if (applyMountingBtn) {
+                applyMountingBtn.addEventListener('click', () => {
+                    if (viewer3D) {
+                        viewer3D.mountingConfig.type = mountingType.value;
+                        viewer3D.mountingConfig.width = parseFloat(mountingWidth.value);
+                        viewer3D.mountingConfig.height = parseFloat(mountingHeight.value);
+                        viewer3D.mountingConfig.depth = parseFloat(mountingDepth.value);
+                        viewer3D.rebuildMounting();
+                    }
+                });
+            }
+            
+            // Physics controls
+            const gravityCheckbox = document.getElementById('enableGravity');
+            const snappingCheckbox = document.getElementById('enableSnapping');
+            const snapDistanceSlider = document.getElementById('snapDistance');
+            const snapDistanceValue = document.getElementById('snapDistanceValue');
+            const clearSceneBtn = document.getElementById('clearScene');
+            
+            if (gravityCheckbox) {
+                gravityCheckbox.addEventListener('change', (e) => {
+                    if (viewer3D) {
+                        viewer3D.gravityEnabled = e.target.checked;
+                        viewer3D.log(`⚙️ Gravity ${e.target.checked ? 'enabled' : 'disabled'}`, 'info');
+                    }
+                });
+            }
+            
+            if (snappingCheckbox) {
+                snappingCheckbox.addEventListener('change', (e) => {
+                    if (viewer3D) {
+                        viewer3D.snapEnabled = e.target.checked;
+                        viewer3D.log(`🧲 Snapping ${e.target.checked ? 'enabled' : 'disabled'}`, 'info');
+                    }
+                });
+            }
+            
+            if (snapDistanceSlider) {
+                snapDistanceSlider.addEventListener('input', (e) => {
+                    if (viewer3D) {
+                        viewer3D.snapDistance = parseFloat(e.target.value);
+                        snapDistanceValue.textContent = `${e.target.value}mm`;
+                    }
+                });
+            }
+            
+            if (clearSceneBtn) {
+                clearSceneBtn.addEventListener('click', () => {
+                    if (viewer3D && confirm('Clear all objects from scene?')) {
+                        viewer3D.clearScene();
+                    }
+                });
+            }
+        }
+        
+        // Load model catalog and create buttons
+        async function loadModelButtons() {
+            try {
+                const models = await catalog.loadCatalog();
+                const container = document.getElementById('model-list-buttons');
+                const infoText = document.getElementById('model-catalog-info');
+                
+                container.innerHTML = '';
+                
+                models.forEach((model) => {
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-success btn-block';
+                    button.style.cssText = 'margin-bottom: 8px; text-align: left; padding: 10px;';
+                    
+                    // Show format indicator
+                    const formatIcon = model.format === 'obj' ? '🎨' : '📦';
+                    const formatText = model.format === 'obj' ? 'OBJ+MTL' : 'STL';
+                    
+                    button.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 3px;">${formatIcon} ${model.name}</div>
+                        <div style="font-size: 10px; opacity: 0.8;">${model.size} • ${formatText}</div>
+                    `;
+                    button.onclick = () => {
+                        if (viewer3D) {
+                            if (model.format === 'obj') {
+                                // Load OBJ+MTL
+                                const objPath = `libs/model/${model.file}`;
+                                const mtlPath = `libs/model/${model.mtlFile}`;
+                                viewer3D.loadOBJ(objPath, mtlPath, model.name, model);
+                            } else {
+                                // Load STL
+                                const filePath = `libs/model/${model.file}`;
+                                viewer3D.loadSTL(filePath, model.name, model);
+                            }
+                        }
+                    };
+                    container.appendChild(button);
+                });
+                
+                infoText.textContent = `✅ ${models.length} CAD models available - Click to add to scene`;
+                infoText.style.color = '#2ecc71';
+                
+            } catch (error) {
+                console.error('Failed to load model catalog:', error);
+            }
+        }
+        
+        // Initialize 3D viewer when needed
+        document.addEventListener('DOMContentLoaded', function() {
+            // 3D viewer will be initialized by viewSwitching.js when switching to 3D view
+            window.init3DModelViewer = function() {
+                init3DViewer();
+                loadModelButtons();
+            };
         });
     </script>
 </body>
