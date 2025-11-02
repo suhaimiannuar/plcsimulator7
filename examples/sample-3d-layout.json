@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-11-01T12:00:00.000Z",
+  "mountingConfig": {
+    "type": "box",
+    "width": 300,
+    "height": 200,
+    "depth": 200
+  },
+  "objects": [
+    {
+      "name": "Motor Controller",
+      "modelName": "Motor Controller",
+      "format": "stl",
+      "position": {
+        "x": 50,
+        "y": 42.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
+    },
+    {
+      "name": "PLC",
+      "modelName": "PLC",
+      "format": "stl",
+      "position": {
+        "x": -50,
+        "y": 45,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
+    }
+  ]
+}

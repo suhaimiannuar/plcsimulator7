@@ -6,7 +6,12 @@
       "format": "stl",
       "size": "23MB",
       "type": "motor",
-      "description": "Stepper motor with mounting feet"
+      "description": "Stepper motor with mounting feet",
+      "dimensions": {
+        "W": 118.11,
+        "H": 85.0,
+        "L": 33.02
+      }
     },
     {
       "name": "PLC",
@@ -14,7 +19,12 @@
       "format": "stl",
       "size": "26MB",
       "type": "cpu",
-      "description": "Programmable Logic Controller module"
+      "description": "Programmable Logic Controller module",
+      "dimensions": {
+        "W": 71.5,
+        "H": 90.0,
+        "L": 59.62
+      }
     },
     {
       "name": "Circuit Breaker",
@@ -22,7 +32,12 @@
       "format": "stl",
       "size": "43MB",
       "type": "circuit-breaker",
-      "description": "DIN rail circuit breaker"
+      "description": "DIN rail circuit breaker",
+      "dimensions": {
+        "W": 53.26,
+        "H": 73.04,
+        "L": 84.78
+      }
     },
     {
       "name": "Emergency Push Button",
@@ -30,7 +45,12 @@
       "format": "stl",
       "size": "12MB",
       "type": "button",
-      "description": "Emergency stop push button"
+      "description": "Emergency stop push button",
+      "dimensions": {
+        "W": 59.98,
+        "H": 82.55,
+        "L": 60.0
+      }
     },
     {
       "name": "PCB Mount Relay",
@@ -38,7 +58,12 @@
       "format": "stl",
       "size": "0.8MB",
       "type": "relay",
-      "description": "PCB mounted relay module"
+      "description": "PCB mounted relay module",
+      "dimensions": {
+        "W": 5.0,
+        "H": 28.0,
+        "L": 18.5
+      }
     },
     {
       "name": "Stack LED Light",
@@ -46,7 +71,12 @@
       "format": "stl",
       "size": "14MB",
       "type": "led",
-      "description": "Industrial stack light indicator"
+      "description": "Industrial stack light indicator",
+      "dimensions": {
+        "W": 59.98,
+        "H": 386.82,
+        "L": 590.96
+      }
     },
     {
       "name": "PCB Board",
@@ -55,7 +85,12 @@
       "format": "obj",
       "size": "1MB",
       "type": "pcb",
-      "description": "Printed Circuit Board with colored components"
+      "description": "Printed Circuit Board with colored components",
+      "dimensions": {
+        "W": 0.09,
+        "H": 0.06,
+        "L": 0.03
+      }
     }
   ]
 }

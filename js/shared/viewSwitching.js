@@ -2,12 +2,13 @@
 // Handles switching between Ladder and Drawing views with appropriate sidebar content
 
 /**
- * Switch between views (ladder, drawing, or 3D models)
- * @param {string} viewType - 'ladder', 'drawing', or '3dmodels'
+ * Switch between views (ladder, drawing, portconfig, or 3D models)
+ * @param {string} viewType - 'ladder', 'drawing', 'portconfig', or '3dmodels'
  */
 function switchToView(viewType) {
     const ladderWorkspace = document.querySelector('.ladder-workspace');
     const drawingWorkspace = document.querySelector('.drawing-workspace');
+    const portconfigWorkspace = document.querySelector('.portconfig-workspace');
     const modelWorkspace = document.querySelector('.model-workspace');
     const ladderRightPanels = document.getElementById('ladder-right-panels');
     const modelRightPanels = document.getElementById('model-right-panels');
@@ -16,14 +17,21 @@ function switchToView(viewType) {
     const ladderComponents = document.getElementById('ladder-components');
     const drawingComponents = document.getElementById('drawing-components');
     const modelComponents = document.getElementById('model-components');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // Header controls
+    const ladderControls = document.getElementById('ladder-controls');
+    const modelControls = document.getElementById('model-controls');
     
     const viewLadderBtn = document.getElementById('viewLadder');
     const viewDrawingBtn = document.getElementById('viewDrawing');
+    const viewPortConfigBtn = document.getElementById('viewPortConfig');
     const view3DModelsBtn = document.getElementById('view3DModels');
     
     // Hide all views
     if (ladderWorkspace) ladderWorkspace.style.display = 'none';
     if (drawingWorkspace) drawingWorkspace.style.display = 'none';
+    if (portconfigWorkspace) portconfigWorkspace.style.display = 'none';
     if (modelWorkspace) modelWorkspace.style.display = 'none';
     if (ladderRightPanels) ladderRightPanels.style.display = 'none';
     if (modelRightPanels) modelRightPanels.style.display = 'none';
@@ -33,8 +41,12 @@ function switchToView(viewType) {
     if (drawingComponents) drawingComponents.style.display = 'none';
     if (modelComponents) modelComponents.style.display = 'none';
     
+    // Hide all header controls
+    if (ladderControls) ladderControls.style.display = 'none';
+    if (modelControls) modelControls.style.display = 'none';
+    
     // Reset button styles
-    [viewLadderBtn, viewDrawingBtn, view3DModelsBtn].forEach(btn => {
+    [viewLadderBtn, viewDrawingBtn, viewPortConfigBtn, view3DModelsBtn].forEach(btn => {
         if (btn) {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-secondary');
@@ -46,6 +58,8 @@ function switchToView(viewType) {
         if (ladderWorkspace) ladderWorkspace.style.display = 'block';
         if (ladderRightPanels) ladderRightPanels.style.display = 'block';
         if (ladderComponents) ladderComponents.style.display = 'block';
+        if (ladderControls) ladderControls.style.display = 'flex';
+        if (sidebar) sidebar.style.display = 'block';
         if (viewLadderBtn) {
             viewLadderBtn.classList.remove('btn-secondary');
             viewLadderBtn.classList.add('btn-primary');
@@ -55,6 +69,8 @@ function switchToView(viewType) {
     } else if (viewType === 'drawing') {
         if (drawingWorkspace) drawingWorkspace.style.display = 'block';
         if (drawingComponents) drawingComponents.style.display = 'block';
+        if (sidebar) sidebar.style.display = 'block';
+        // No specific controls for drawing view yet
         if (viewDrawingBtn) {
             viewDrawingBtn.classList.remove('btn-secondary');
             viewDrawingBtn.classList.add('btn-primary');
@@ -67,10 +83,27 @@ function switchToView(viewType) {
         
         console.log('Switched to Drawing view');
         
+    } else if (viewType === 'portconfig') {
+        if (portconfigWorkspace) portconfigWorkspace.style.display = 'block';
+        if (sidebar) sidebar.style.display = 'none'; // Hide sidebars for port config
+        if (viewPortConfigBtn) {
+            viewPortConfigBtn.classList.remove('btn-secondary');
+            viewPortConfigBtn.classList.add('btn-primary');
+        }
+        
+        // Initialize Port Config viewer if not already
+        if (typeof window.initPortConfigViewer === 'function') {
+            window.initPortConfigViewer();
+        }
+        
+        console.log('Switched to Port Config view');
+        
     } else if (viewType === '3dmodels') {
         if (modelWorkspace) modelWorkspace.style.display = 'block';
         if (modelComponents) modelComponents.style.display = 'block';
         if (modelRightPanels) modelRightPanels.style.display = 'block';
+        if (modelControls) modelControls.style.display = 'flex';
+        if (sidebar) sidebar.style.display = 'block';
         if (view3DModelsBtn) {
             view3DModelsBtn.classList.remove('btn-secondary');
             view3DModelsBtn.classList.add('btn-primary');
@@ -98,6 +131,7 @@ if (typeof window !== 'undefined') {
         // Setup view switching buttons
         const viewLadder = document.getElementById('viewLadder');
         const viewDrawing = document.getElementById('viewDrawing');
+        const viewPortConfig = document.getElementById('viewPortConfig');
         const view3DModels = document.getElementById('view3DModels');
         
         if (viewLadder) {
@@ -106,6 +140,10 @@ if (typeof window !== 'undefined') {
         
         if (viewDrawing) {
             viewDrawing.addEventListener('click', () => switchToView('drawing'));
+        }
+        
+        if (viewPortConfig) {
+            viewPortConfig.addEventListener('click', () => switchToView('portconfig'));
         }
         
         if (view3DModels) {
