@@ -291,6 +291,36 @@
                 </div>
                 <!-- End of 3D Model Components -->
 
+                <!-- Port Config Components (shown in Port Config view, initially hidden) -->
+                <div id="portconfig-components" class="sidebar-content" style="display: none;">
+                    <h2>📦 Model Selection</h2>
+                    
+                    <!-- Upload New Models -->
+                    <div class="component-category">
+                        <h3>📤 Upload New Model</h3>
+                        <div style="padding: 10px; background: #2c3e50; border-radius: 5px; margin-bottom: 10px;">
+                            <button id="portConfigUploadSTL" class="btn btn-info btn-small" style="width: 100%; margin-bottom: 5px;">
+                                📦 Upload STL
+                            </button>
+                            <button id="portConfigUploadOBJ" class="btn btn-info btn-small" style="width: 100%;">
+                                🎨 Upload OBJ + MTL
+                            </button>
+                            <p style="font-size: 10px; color: #888; margin: 5px 0 0 0;">
+                                Upload models to configure connection ports
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Available Models -->
+                    <div class="component-category">
+                        <h3>📚 Available Models</h3>
+                        <div id="portConfigAvailableModels" style="max-height: 500px; overflow-y: auto;">
+                            <p style="color: #888; font-size: 12px;">Loading models...</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of Port Config Components -->
+
             </aside>
 
             <!-- Center - Ladder Grid -->
@@ -340,93 +370,55 @@
 
             <!-- Port Config View (initially hidden) -->
             <main class="portconfig-workspace" style="display: none;">
-                <div id="portconfig-container" style="width: 100%; height: calc(100vh - 120px); background: #1e1e1e; position: relative; display: flex;">
-                    <!-- Left Panel - Model Selection -->
-                    <div style="width: 300px; background: #2c3e50; border-right: 2px solid #34495e; overflow-y: auto;">
-                        <div style="padding: 20px;">
-                            <h2 style="color: #ecf0f1; margin-top: 0;">📦 Select Model</h2>
-                            
-                            <!-- Upload Models -->
-                            <div style="background: #34495e; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                                <h3 style="color: #3498db; font-size: 14px; margin-top: 0;">Upload New Model</h3>
-                                <button id="portConfigUploadSTL" class="btn btn-info btn-small" style="width: 100%; margin-bottom: 8px;">
-                                    📦 Upload STL
-                                </button>
-                                <button id="portConfigUploadOBJ" class="btn btn-info btn-small" style="width: 100%;">
-                                    🎨 Upload OBJ + MTL
-                                </button>
-                            </div>
-                            
-                            <!-- Available Models List -->
-                            <div id="portConfigModelList" style="background: #34495e; padding: 15px; border-radius: 5px;">
-                                <h3 style="color: #2ecc71; font-size: 14px; margin-top: 0;">Available Models</h3>
-                                <div id="portConfigAvailableModels">
-                                    <p style="color: #888; font-size: 12px;">Loading models...</p>
-                                </div>
-                            </div>
+                <div id="portconfig-viewer" style="width: 100%; height: calc(100vh - 120px); background: #263238; position: relative;">
+                    <!-- Three.js canvas will be inserted here -->
+                    
+                    <!-- Instructions Overlay -->
+                    <div id="portConfigInstructions" style="position: absolute; top: 20px; left: 20px; background: rgba(52, 73, 94, 0.95); color: #ecf0f1; padding: 15px; border-radius: 5px; max-width: 400px; font-size: 12px; z-index: 10;">
+                        <h3 style="margin-top: 0; color: #3498db;">🔌 Port Configuration</h3>
+                        <div style="background: rgba(52, 152, 219, 0.2); padding: 8px; border-radius: 3px; margin-bottom: 8px; border-left: 3px solid #3498db;">
+                            <strong>🖱️ Mouse Controls:</strong><br>
+                            • Left-click: Select surface / Add port<br>
+                            • Right-click + drag: <strong>Pan view</strong><br>
+                            • Scroll: Zoom in/out<br>
+                            • Left-drag: Rotate view
+                        </div>
+                        <ol style="margin: 10px 0; padding-left: 20px; line-height: 1.6;">
+                            <li>Select a model from the left panel</li>
+                            <li>Click on the model surface - the surface will be <span style="color: #2ecc71; font-weight: bold;">highlighted in green</span></li>
+                            <li>A <span style="color: #e74c3c; font-weight: bold;">red dot</span> marks where you clicked</li>
+                            <li>A <span style="color: #00ffff; font-weight: bold;">cyan arrow</span> shows the port direction (surface normal)</li>
+                            <li>Use cubic view buttons to change viewing angle</li>
+                            <li>Click <strong>"View Normal"</strong> to look perpendicular to the selected surface</li>
+                            <li>Hold <strong>SHIFT + Click</strong> to add a labeled port</li>
+                            <li>Use <strong>"Clear Dots"</strong> button to remove temporary dots</li>
+                        </ol>
+                        <div style="background: rgba(46, 204, 113, 0.2); padding: 8px; border-radius: 3px; margin-top: 10px; border-left: 3px solid #2ecc71;">
+                            <strong>✓ Ports with direction data will be available in 3D Model view</strong>
                         </div>
                     </div>
                     
-                    <!-- Center - 3D Viewer -->
-                    <div style="flex: 1; position: relative; background: #263238;">
-                        <div id="portconfig-viewer" style="width: 100%; height: 100%;">
-                            <!-- Three.js canvas will be inserted here -->
+                    <!-- Cubic View Controls -->
+                    <div id="portConfigCubicViews" style="position: absolute; top: 20px; right: 20px; background: rgba(52, 73, 94, 0.95); color: #ecf0f1; padding: 15px; border-radius: 5px; z-index: 10;">
+                        <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 12px;">📐 View Controls</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 60px); gap: 5px;">
+                            <button onclick="portConfigViewer.setCubicView('top')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Top</button>
+                            <button onclick="portConfigViewer.setCubicView('front')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Front</button>
+                            <button onclick="portConfigViewer.setCubicView('back')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Back</button>
+                            <button onclick="portConfigViewer.setCubicView('left')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Left</button>
+                            <button onclick="portConfigViewer.setCubicView('bottom')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Bottom</button>
+                            <button onclick="portConfigViewer.setCubicView('right')" class="btn btn-secondary btn-small" style="font-size: 10px; padding: 8px 4px;">Right</button>
+                            <button onclick="portConfigViewer.setCubicView('iso')" class="btn btn-info btn-small" style="font-size: 10px; padding: 8px 4px; grid-column: span 3;">Isometric</button>
                         </div>
-                        
-                        <!-- Instructions Overlay -->
-                        <div id="portConfigInstructions" style="position: absolute; top: 20px; left: 20px; background: rgba(52, 73, 94, 0.95); color: #ecf0f1; padding: 15px; border-radius: 5px; max-width: 350px; font-size: 12px; z-index: 10;">
-                            <h3 style="margin-top: 0; color: #3498db;">🔌 Port Configuration</h3>
-                            <ol style="margin: 10px 0; padding-left: 20px; line-height: 1.6;">
-                                <li>Select a model from the left panel</li>
-                                <li>Click on the model surface to add a port</li>
-                                <li>Hold <strong>SHIFT</strong> to add labeled port</li>
-                                <li>Ports are saved automatically</li>
-                            </ol>
-                            <div style="background: rgba(46, 204, 113, 0.2); padding: 8px; border-radius: 3px; margin-top: 10px; border-left: 3px solid #2ecc71;">
-                                <strong>✓ Ports will be available in 3D Model view</strong>
-                            </div>
-                        </div>
-                        
-                        <!-- Status -->
-                        <div id="portconfig-status" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; font-family: monospace; max-width: 400px; z-index: 10;">
-                            <div class="log-entry">Select a model to configure ports...</div>
-                        </div>
+                        <button id="portConfigViewNormal" class="btn btn-warning btn-small" style="font-size: 10px; padding: 8px 4px; width: 100%; margin-top: 8px;">
+                            📍 View Normal
+                        </button>
+                        <div style="font-size: 9px; color: #95a5a6; margin-top: 5px; text-align: center;">Right-click = Pan</div>
                     </div>
                     
-                    <!-- Right Panel - Port Management -->
-                    <div style="width: 320px; background: #2c3e50; border-left: 2px solid #34495e; overflow-y: auto; display: flex; flex-direction: column;">
-                        <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
-                            <h2 style="color: #ecf0f1; margin-top: 0;">⚡ Port Management</h2>
-                            
-                            <div id="portConfigCurrentModel" style="background: #34495e; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                                <div style="font-size: 11px; color: #95a5a6; margin-bottom: 5px;">Current Model:</div>
-                                <div id="portConfigModelName" style="font-size: 14px; color: #ecf0f1; font-weight: bold;">None selected</div>
-                            </div>
-                            
-                            <div style="background: #34495e; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                                <h3 style="color: #e74c3c; font-size: 14px; margin-top: 0;">🗑️ Clear Ports</h3>
-                                <button id="portConfigClearPorts" class="btn btn-danger btn-small" style="width: 100%;">
-                                    Clear All Ports
-                                </button>
-                            </div>
-                            
-                            <div style="background: #34495e; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                                <h3 style="color: #3498db; font-size: 14px; margin-top: 0;">💾 Save/Load</h3>
-                                <button id="portConfigSavePorts" class="btn btn-info btn-small" style="width: 100%; margin-bottom: 8px;">
-                                    Save Port Config
-                                </button>
-                                <button id="portConfigLoadPorts" class="btn btn-secondary btn-small" style="width: 100%;">
-                                    Load Port Config
-                                </button>
-                            </div>
-                            
-                            <div id="portConfigPortsList" style="background: #34495e; padding: 15px; border-radius: 5px; flex: 1; display: flex; flex-direction: column;">
-                                <h3 style="color: #2ecc71; font-size: 14px; margin-top: 0; margin-bottom: 10px;">📍 Configured Ports</h3>
-                                <div id="portConfigPortsContent" style="flex: 1; overflow-y: auto;">
-                                    <p style="color: #888; font-size: 12px;">No ports configured</p>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Status -->
+                    <div id="portconfig-status" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; font-family: monospace; max-width: 400px; z-index: 10;">
+                        <div class="log-entry">Select a model to configure ports...</div>
                     </div>
                 </div>
             </main>
@@ -462,7 +454,7 @@
             <!-- Right Sidebar - I/O and Properties -->
             <aside class="sidebar sidebar-right">
                 <!-- Ladder View Panels (shown when in ladder view) -->
-                <div id="ladder-right-panels">
+                <div id="ladder-right-panels" style="display: none;">
                     <!-- Input Panel -->
                     <div class="io-panel">
                         <h2>Inputs</h2>
@@ -687,6 +679,64 @@
                         <button id="clearScene" class="btn btn-danger btn-small" style="margin-top: 10px;">Clear All</button>
                     </div>
                 </div>
+
+                <!-- Port Config View Panels (shown when in port config view) -->
+                <div id="portconfig-right-panels" style="display: none;">
+                    <!-- Current Model Info -->
+                    <div class="io-panel">
+                        <h2>⚡ Port Management</h2>
+                        <div id="portConfigCurrentModel" style="padding: 10px;">
+                            <div style="font-size: 11px; color: #888; margin-bottom: 5px;">Current Model:</div>
+                            <div id="portConfigModelName" style="font-size: 14px; color: #ecf0f1; font-weight: bold; margin-bottom: 10px;">None selected</div>
+                            
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #34495e;">
+                                <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">Model Scale (for small OBJ):</label>
+                                <div style="display: flex; gap: 5px; align-items: center;">
+                                    <input type="number" id="portConfigScaleFactor" value="1" min="1" max="10000" step="100" 
+                                           style="width: 80px; padding: 4px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                                    <button id="portConfigApplyScale" class="btn btn-info btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;">
+                                        Apply
+                                    </button>
+                                </div>
+                                <div style="font-size: 9px; color: #7f8c8d; margin-top: 3px;">1000 = meters→mm, 100 = cm→mm</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clear Controls -->
+                    <div class="io-panel">
+                        <h2>🗑️ Clear</h2>
+                        <div style="padding: 10px;">
+                            <button id="portConfigClearDots" class="btn btn-warning btn-small" style="width: 100%; margin-bottom: 8px;">
+                                Clear Dots
+                            </button>
+                            <button id="portConfigClearPorts" class="btn btn-danger btn-small" style="width: 100%;">
+                                Clear All Ports
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Save/Load -->
+                    <div class="io-panel">
+                        <h2>💾 Save/Load</h2>
+                        <div style="padding: 10px;">
+                            <button id="portConfigSavePorts" class="btn btn-info btn-small" style="width: 100%; margin-bottom: 8px;">
+                                Save Port Config
+                            </button>
+                            <button id="portConfigLoadPorts" class="btn btn-secondary btn-small" style="width: 100%;">
+                                Load Port Config
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Configured Ports List -->
+                    <div class="io-panel" id="portConfigPortsList">
+                        <h2>📍 Configured Ports</h2>
+                        <div id="portConfigPortsContent" style="padding: 10px; max-height: 300px; overflow-y: auto;">
+                            <p style="color: #888; font-size: 12px;">No ports configured</p>
+                        </div>
+                    </div>
+                </div>
             </aside>
         </div>
     </div>
@@ -835,6 +885,16 @@
     <script src="js/model/modelWiring.js"></script>
     <script src="js/model/modelTools.js"></script>
     <script src="js/model/modelStorage.js"></script>
+    
+    <!-- Port Config Viewer - Modular Files -->
+    <script src="js/port/portConfigScene.js"></script>
+    <script src="js/port/portConfigLoader.js"></script>
+    <script src="js/port/portConfigMarkers.js"></script>
+    <script src="js/port/portConfigUI.js"></script>
+    <script src="js/port/portConfigStorage.js"></script>
+    <script src="js/port/portConfigInteraction.js"></script>
+    <script src="js/port/portConfigViewer.js"></script>
+    <script src="js/port/portConfigInit.js"></script>
     
     <!-- 3D Model Viewer Script -->
     <script>
@@ -1398,664 +1458,10 @@
             };
         });
         
-        // ==================== PORT CONFIG VIEWER ====================
-        
-        let portConfigViewer = null;
-        
-        class PortConfigViewer {
-            constructor() {
-                this.container = document.getElementById('portconfig-viewer');
-                this.statusDiv = document.getElementById('portconfig-status');
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.controls = null;
-                this.currentModel = null;
-                this.currentModelName = null;
-                this.portMarkers = [];
-                this.modelPorts = new Map(); // Store ports per model
-                this.portEditMode = true; // Always in port edit mode
-                
-                this.init();
-            }
-            
-            init() {
-                console.log('Initializing Port Config Viewer...');
-                console.log('Container:', this.container);
-                console.log('Container size:', this.container.clientWidth, 'x', this.container.clientHeight);
-                
-                // Setup Three.js scene
-                this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x263238);
-                
-                // Get container dimensions (fallback if not ready)
-                const width = this.container.clientWidth || 800;
-                const height = this.container.clientHeight || 600;
-                
-                // Camera
-                this.camera = new THREE.PerspectiveCamera(
-                    45,
-                    width / height,
-                    0.1,
-                    10000
-                );
-                this.camera.position.set(300, 300, 300);
-                this.camera.lookAt(0, 0, 0);
-                
-                // Renderer
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                this.renderer.setSize(width, height);
-                this.renderer.setPixelRatio(window.devicePixelRatio);
-                this.container.appendChild(this.renderer.domElement);
-                
-                console.log('Renderer size set to:', width, 'x', height);
-                
-                // Lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 2);
-                this.scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                directionalLight.position.set(100, 200, 100);
-                this.scene.add(directionalLight);
-                
-                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-                directionalLight2.position.set(-100, -200, -100);
-                this.scene.add(directionalLight2);
-                
-                // Grid
-                const gridHelper = new THREE.GridHelper(500, 20, 0x444444, 0x222222);
-                this.scene.add(gridHelper);
-                
-                // Add axes helper for orientation
-                const axesHelper = new THREE.AxesHelper(100);
-                this.scene.add(axesHelper);
-                
-                // Add a test cube to verify rendering is working
-                const testGeometry = new THREE.BoxGeometry(50, 50, 50);
-                const testMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000, wireframe: true });
-                const testCube = new THREE.Mesh(testGeometry, testMaterial);
-                testCube.position.set(0, 25, 0);
-                this.scene.add(testCube);
-                this.testCube = testCube; // Store reference
-                
-                console.log('Test cube added at origin');
-                
-                // Controls
-                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-                this.controls.enableDamping = true;
-                this.controls.dampingFactor = 0.05;
-                
-                // Mouse picking
-                this.setupMousePicking();
-                
-                // Handle window resize
-                window.addEventListener('resize', () => this.onWindowResize());
-                
-                // Start animation loop
-                this.animate();
-                
-                console.log('Port Config Viewer initialized successfully');
-                this.log('Port Config Viewer initialized - You should see a red test cube', 'success');
-            }
-            
-            setupMousePicking() {
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-                
-                this.renderer.domElement.addEventListener('click', (event) => {
-                    // Don't register clicks while dragging
-                    if (this.controls.isDragging) {
-                        console.log('Ignoring click - camera is dragging');
-                        return;
-                    }
-                    
-                    if (!this.currentModel) {
-                        this.log('⚠️ Select a model first!', 'warning');
-                        return;
-                    }
-                    
-                    const rect = this.renderer.domElement.getBoundingClientRect();
-                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                    
-                    console.log('Mouse click:', { x: mouse.x, y: mouse.y });
-                    
-                    raycaster.setFromCamera(mouse, this.camera);
-                    
-                    // Raycast against all objects in scene for debugging
-                    const allIntersects = raycaster.intersectObjects(this.scene.children, true);
-                    console.log('All intersects:', allIntersects.length);
-                    
-                    // Raycast specifically against the model
-                    const intersects = raycaster.intersectObject(this.currentModel, true);
-                    console.log('Model intersects:', intersects.length, intersects);
-                    
-                    if (intersects.length > 0) {
-                        const clickPosition = intersects[0].point;
-                        console.log('Port position:', clickPosition);
-                        this.addPort(clickPosition, event.shiftKey);
-                    } else {
-                        this.log('⚠️ Click on the model surface to add a port', 'warning');
-                    }
-                });
-                
-                // Track dragging state
-                this.controls.addEventListener('start', () => {
-                    this.controls.isDragging = false;
-                });
-                
-                this.controls.addEventListener('change', () => {
-                    this.controls.isDragging = true;
-                });
-                
-                this.controls.addEventListener('end', () => {
-                    setTimeout(() => {
-                        this.controls.isDragging = false;
-                    }, 100); // Small delay to avoid click after drag
-                });
-            }
-            
-            async loadModel(modelData) {
-                console.log('Loading model:', modelData);
-                
-                // Clear current model
-                if (this.currentModel) {
-                    this.scene.remove(this.currentModel);
-                    this.clearPortMarkers();
-                }
-                
-                // Remove test cube if it exists
-                if (this.testCube) {
-                    this.scene.remove(this.testCube);
-                    this.testCube = null;
-                }
-                
-                this.log(`Loading ${modelData.name}...`, 'info');
-                
-                try {
-                    let loadedModel = null;
-                    
-                    // Construct proper file paths
-                    let filePath = modelData.file;
-                    let mtlPath = modelData.mtlFile;
-                    
-                    // If file doesn't start with http, prepend libs/model/
-                    if (!filePath.startsWith('http')) {
-                        filePath = `libs/model/${filePath}`;
-                    }
-                    if (mtlPath && !mtlPath.startsWith('http')) {
-                        mtlPath = `libs/model/${mtlPath}`;
-                    }
-                    
-                    console.log('File path:', filePath);
-                    console.log('MTL path:', mtlPath);
-                    
-                    if (modelData.format === 'stl') {
-                        const loader = new THREE.STLLoader();
-                        const geometry = await new Promise((resolve, reject) => {
-                            loader.load(
-                                filePath, 
-                                resolve, 
-                                (progress) => {
-                                    const percent = (progress.loaded / progress.total * 100).toFixed(0);
-                                    this.log(`Loading... ${percent}%`, 'info');
-                                },
-                                reject
-                            );
-                        });
-                        
-                        const material = new THREE.MeshPhongMaterial({
-                            color: 0x3498db,
-                            specular: 0x111111,
-                            shininess: 200
-                        });
-                        loadedModel = new THREE.Mesh(geometry, material);
-                        
-                    } else if (modelData.format === 'obj') {
-                        // Load MTL first
-                        const mtlLoader = new THREE.MTLLoader();
-                        const materialPath = mtlPath || filePath.replace('.obj', '.mtl');
-                        
-                        const materials = await new Promise((resolve, reject) => {
-                            mtlLoader.load(
-                                materialPath,
-                                resolve,
-                                undefined,
-                                (error) => {
-                                    console.warn('MTL loading failed, using default material:', error);
-                                    resolve(null); // Continue with default material
-                                }
-                            );
-                        });
-                        
-                        if (materials) {
-                            materials.preload();
-                        }
-                        
-                        // Load OBJ
-                        const objLoader = new THREE.OBJLoader();
-                        if (materials) {
-                            objLoader.setMaterials(materials);
-                        }
-                        
-                        loadedModel = await new Promise((resolve, reject) => {
-                            objLoader.load(
-                                filePath,
-                                resolve,
-                                (progress) => {
-                                    if (progress.total > 0) {
-                                        const percent = (progress.loaded / progress.total * 100).toFixed(0);
-                                        this.log(`Loading... ${percent}%`, 'info');
-                                    }
-                                },
-                                reject
-                            );
-                        });
-                    }
-                    
-                    if (loadedModel) {
-                        console.log('Model loaded successfully:', loadedModel);
-                        
-                        this.currentModel = loadedModel;
-                        this.currentModelName = modelData.name;
-                        this.scene.add(loadedModel);
-                        
-                        console.log('Model added to scene');
-                        
-                        // Center camera on model
-                        const box = new THREE.Box3().setFromObject(loadedModel);
-                        const center = box.getCenter(new THREE.Vector3());
-                        const size = box.getSize(new THREE.Vector3());
-                        const maxDim = Math.max(size.x, size.y, size.z);
-                        
-                        console.log('Model bounds:', {
-                            center: center,
-                            size: size,
-                            maxDim: maxDim
-                        });
-                        
-                        const fov = this.camera.fov * (Math.PI / 180);
-                        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-                        cameraZ *= 2.0; // Increased multiplier for better view
-                        
-                        this.camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
-                        this.controls.target.copy(center);
-                        this.controls.update();
-                        
-                        console.log('Camera positioned at:', this.camera.position);
-                        console.log('Camera looking at:', center);
-                        
-                        // Update UI
-                        document.getElementById('portConfigModelName').textContent = modelData.name;
-                        
-                        // Load existing ports if any
-                        if (this.modelPorts.has(modelData.name)) {
-                            const ports = this.modelPorts.get(modelData.name);
-                            ports.forEach(port => {
-                                this.createPortMarker(port);
-                            });
-                        }
-                        
-                        this.updatePortsList();
-                        this.log(`✅ Loaded: ${modelData.name}`, 'success');
-                    } else {
-                        console.error('Model loaded but is null/undefined');
-                        this.log('❌ Failed to load model', 'error');
-                    }
-                    
-                } catch (error) {
-                    console.error('Error loading model:', error);
-                    this.log(`❌ Failed to load model: ${error.message}`, 'error');
-                }
-            }
-            
-            addPort(worldPosition, withLabel = false) {
-                let label = `Port_${this.portMarkers.length + 1}`;
-                
-                if (withLabel) {
-                    label = prompt('Enter port label:', label);
-                    if (!label) return;
-                }
-                
-                const port = {
-                    label: label,
-                    worldPosition: {
-                        x: worldPosition.x,
-                        y: worldPosition.y,
-                        z: worldPosition.z
-                    },
-                    localPosition: worldPosition.clone()
-                };
-                
-                // Store port for current model
-                if (!this.modelPorts.has(this.currentModelName)) {
-                    this.modelPorts.set(this.currentModelName, []);
-                }
-                this.modelPorts.get(this.currentModelName).push(port);
-                
-                // Create visual marker
-                this.createPortMarker(port);
-                this.updatePortsList();
-                
-                this.log(`✅ Port added: ${label}`, 'success');
-            }
-            
-            createPortMarker(port) {
-                // Port sphere
-                const geometry = new THREE.SphereGeometry(5, 16, 16);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: 0xff0000,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const marker = new THREE.Mesh(geometry, material);
-                marker.position.copy(port.worldPosition);
-                marker.userData = { port: port };
-                
-                this.scene.add(marker);
-                this.portMarkers.push(marker);
-                
-                // Port label
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = 256;
-                canvas.height = 64;
-                context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                context.fillStyle = 'white';
-                context.font = 'bold 24px Arial';
-                context.textAlign = 'center';
-                context.fillText(port.label, 128, 40);
-                
-                const texture = new THREE.CanvasTexture(canvas);
-                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-                const sprite = new THREE.Sprite(spriteMaterial);
-                sprite.position.copy(port.worldPosition);
-                sprite.position.y += 15;
-                sprite.scale.set(30, 7.5, 1);
-                
-                this.scene.add(sprite);
-                this.portMarkers.push(sprite);
-            }
-            
-            clearPortMarkers() {
-                this.portMarkers.forEach(marker => {
-                    this.scene.remove(marker);
-                    if (marker.geometry) marker.geometry.dispose();
-                    if (marker.material) {
-                        if (marker.material.map) marker.material.map.dispose();
-                        marker.material.dispose();
-                    }
-                });
-                this.portMarkers = [];
-            }
-            
-            clearAllPorts() {
-                if (!this.currentModelName) {
-                    this.log('No model selected', 'warning');
-                    return;
-                }
-                
-                if (!confirm(`Clear all ports for ${this.currentModelName}?`)) return;
-                
-                this.modelPorts.delete(this.currentModelName);
-                this.clearPortMarkers();
-                this.updatePortsList();
-                this.log('All ports cleared', 'info');
-            }
-            
-            updatePortsList() {
-                const content = document.getElementById('portConfigPortsContent');
-                
-                if (!this.currentModelName || !this.modelPorts.has(this.currentModelName)) {
-                    content.innerHTML = '<p style="color: #888; font-size: 12px;">No ports configured</p>';
-                    return;
-                }
-                
-                const ports = this.modelPorts.get(this.currentModelName);
-                content.innerHTML = ''; // Clear content
-                
-                ports.forEach((port, index) => {
-                    const portDiv = document.createElement('div');
-                    portDiv.style.cssText = 'background: #2c3e50; padding: 10px; margin-bottom: 8px; border-radius: 3px; border-left: 3px solid #e74c3c;';
-                    
-                    // Port info
-                    const labelDiv = document.createElement('div');
-                    labelDiv.style.cssText = 'font-weight: bold; color: #ecf0f1; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;';
-                    labelDiv.innerHTML = `
-                        <span>${port.label}</span>
-                        <div style="display: flex; gap: 5px;">
-                            <button onclick="portConfigViewer.editPortLabel(${index})" 
-                                    style="background: #3498db; border: none; color: white; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">
-                                ✏️ Edit
-                            </button>
-                            <button onclick="portConfigViewer.deletePort(${index})" 
-                                    style="background: #e74c3c; border: none; color: white; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">
-                                🗑️ Delete
-                            </button>
-                        </div>
-                    `;
-                    
-                    const coordDiv = document.createElement('div');
-                    coordDiv.style.cssText = 'font-size: 10px; color: #95a5a6;';
-                    coordDiv.textContent = `X: ${port.worldPosition.x.toFixed(1)}  Y: ${port.worldPosition.y.toFixed(1)}  Z: ${port.worldPosition.z.toFixed(1)}`;
-                    
-                    portDiv.appendChild(labelDiv);
-                    portDiv.appendChild(coordDiv);
-                    content.appendChild(portDiv);
-                });
-            }
-            
-            editPortLabel(index) {
-                if (!this.currentModelName || !this.modelPorts.has(this.currentModelName)) return;
-                
-                const ports = this.modelPorts.get(this.currentModelName);
-                if (index < 0 || index >= ports.length) return;
-                
-                const port = ports[index];
-                const newLabel = prompt('Enter new port label:', port.label);
-                
-                if (newLabel && newLabel !== port.label) {
-                    port.label = newLabel;
-                    
-                    // Update visual marker
-                    this.clearPortMarkers();
-                    ports.forEach(p => this.createPortMarker(p));
-                    
-                    this.updatePortsList();
-                    this.log(`✏️ Port label updated: ${newLabel}`, 'success');
-                }
-            }
-            
-            deletePort(index) {
-                if (!this.currentModelName || !this.modelPorts.has(this.currentModelName)) return;
-                
-                const ports = this.modelPorts.get(this.currentModelName);
-                if (index < 0 || index >= ports.length) return;
-                
-                const port = ports[index];
-                if (!confirm(`Delete port "${port.label}"?`)) return;
-                
-                // Remove from array
-                ports.splice(index, 1);
-                
-                // Update visual markers
-                this.clearPortMarkers();
-                ports.forEach(p => this.createPortMarker(p));
-                
-                this.updatePortsList();
-                this.log(`🗑️ Port deleted: ${port.label}`, 'info');
-            }
-            
-            savePorts() {
-                const portsData = {};
-                this.modelPorts.forEach((ports, modelName) => {
-                    portsData[modelName] = ports;
-                });
-                
-                const json = JSON.stringify(portsData, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'port-config.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                this.log('✅ Port configuration saved', 'success');
-            }
-            
-            loadPorts() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    try {
-                        const text = await file.text();
-                        const portsData = JSON.parse(text);
-                        
-                        this.modelPorts.clear();
-                        Object.entries(portsData).forEach(([modelName, ports]) => {
-                            this.modelPorts.set(modelName, ports);
-                        });
-                        
-                        // Refresh current model ports if loaded
-                        if (this.currentModelName && this.modelPorts.has(this.currentModelName)) {
-                            this.clearPortMarkers();
-                            const ports = this.modelPorts.get(this.currentModelName);
-                            ports.forEach(port => this.createPortMarker(port));
-                            this.updatePortsList();
-                        }
-                        
-                        this.log('✅ Port configuration loaded', 'success');
-                    } catch (error) {
-                        this.log(`❌ Failed to load: ${error.message}`, 'error');
-                    }
-                };
-                
-                input.click();
-            }
-            
-            onWindowResize() {
-                if (!this.container) return;
-                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-            }
-            
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                if (this.controls) this.controls.update();
-                if (this.renderer && this.scene && this.camera) {
-                    this.renderer.render(this.scene, this.camera);
-                }
-            }
-            
-            log(message, type = 'info') {
-                if (!this.statusDiv) return;
-                const entry = document.createElement('div');
-                entry.className = 'log-entry';
-                entry.style.color = type === 'success' ? '#2ecc71' :
-                                   type === 'error' ? '#e74c3c' :
-                                   type === 'warning' ? '#f39c12' : '#3498db';
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                this.statusDiv.appendChild(entry);
-                this.statusDiv.scrollTop = this.statusDiv.scrollHeight;
-                
-                while (this.statusDiv.children.length > 10) {
-                    this.statusDiv.removeChild(this.statusDiv.firstChild);
-                }
-            }
-        }
-        
-        // Initialize Port Config Viewer
-        window.initPortConfigViewer = async function() {
-            if (portConfigViewer) return; // Already initialized
-            
-            portConfigViewer = new PortConfigViewer();
-            
-            // Store models globally for button access
-            window.portConfigModels = [];
-            
-            // Setup model list
-            try {
-                const catalogResponse = await fetch('libs/model/catalog.json');
-                const catalog = await catalogResponse.json();
-                const modelListDiv = document.getElementById('portConfigAvailableModels');
-                
-                modelListDiv.innerHTML = ''; // Clear loading message
-                
-                // Add catalog models
-                catalog.models.forEach((model, index) => {
-                    window.portConfigModels.push(model);
-                    const formatIcon = model.format === 'obj' ? '🎨' : '📦';
-                    
-                    const button = document.createElement('button');
-                    button.className = 'btn btn-secondary btn-small';
-                    button.style.cssText = 'width: 100%; margin-bottom: 5px; text-align: left;';
-                    button.innerHTML = `${formatIcon} ${model.name}`;
-                    button.onclick = () => {
-                        portConfigViewer.loadModel(model);
-                    };
-                    
-                    modelListDiv.appendChild(button);
-                });
-                
-                // Add custom models from localStorage
-                const customModels = JSON.parse(localStorage.getItem('customModels') || '[]');
-                if (customModels.length > 0) {
-                    const hr = document.createElement('hr');
-                    hr.style.cssText = 'border-color: #555; margin: 10px 0;';
-                    modelListDiv.appendChild(hr);
-                    
-                    const label = document.createElement('div');
-                    label.style.cssText = 'font-size: 11px; color: #888; margin-bottom: 5px;';
-                    label.textContent = 'Custom Models:';
-                    modelListDiv.appendChild(label);
-                    
-                    customModels.forEach(model => {
-                        window.portConfigModels.push(model);
-                        const formatIcon = model.format === 'obj' ? '🎨' : '📦';
-                        
-                        const button = document.createElement('button');
-                        button.className = 'btn btn-secondary btn-small';
-                        button.style.cssText = 'width: 100%; margin-bottom: 5px; text-align: left;';
-                        button.innerHTML = `${formatIcon} ${model.name}`;
-                        button.onclick = () => {
-                            portConfigViewer.loadModel(model);
-                        };
-                        
-                        modelListDiv.appendChild(button);
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Failed to load model catalog:', error);
-                document.getElementById('portConfigAvailableModels').innerHTML = 
-                    '<p style="color: #e74c3c; font-size: 11px;">Failed to load models</p>';
-            }
-            
-            // Setup buttons
-            document.getElementById('portConfigClearPorts').onclick = () => portConfigViewer.clearAllPorts();
-            document.getElementById('portConfigSavePorts').onclick = () => portConfigViewer.savePorts();
-            document.getElementById('portConfigLoadPorts').onclick = () => portConfigViewer.loadPorts();
-            
-            // Upload buttons (reuse existing upload functions from main 3D viewer)
-            document.getElementById('portConfigUploadSTL').onclick = () => {
-                alert('STL upload for port config - To be implemented');
-            };
-            document.getElementById('portConfigUploadOBJ').onclick = () => {
-                alert('OBJ upload for port config - To be implemented');
-            };
-        };
-        
-        // ==================== END PORT CONFIG VIEWER ====================
+        // Port Config Viewer code has been moved to js/port/ folder
+        // See: portConfigScene.js, portConfigLoader.js, portConfigMarkers.js,
+        //      portConfigUI.js, portConfigStorage.js, portConfigInteraction.js,
+        //      portConfigViewer.js, and portConfigInit.js
     </script>
 </body>
 </html>

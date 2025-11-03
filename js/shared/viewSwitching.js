@@ -12,12 +12,15 @@ function switchToView(viewType) {
     const modelWorkspace = document.querySelector('.model-workspace');
     const ladderRightPanels = document.getElementById('ladder-right-panels');
     const modelRightPanels = document.getElementById('model-right-panels');
+    const portconfigRightPanels = document.getElementById('portconfig-right-panels');
     
     // Sidebar content divs
     const ladderComponents = document.getElementById('ladder-components');
     const drawingComponents = document.getElementById('drawing-components');
     const modelComponents = document.getElementById('model-components');
+    const portConfigComponents = document.getElementById('portconfig-components');
     const sidebar = document.querySelector('.sidebar');
+    const sidebarRight = document.querySelector('.sidebar-right');
     
     // Header controls
     const ladderControls = document.getElementById('ladder-controls');
@@ -35,11 +38,13 @@ function switchToView(viewType) {
     if (modelWorkspace) modelWorkspace.style.display = 'none';
     if (ladderRightPanels) ladderRightPanels.style.display = 'none';
     if (modelRightPanels) modelRightPanels.style.display = 'none';
+    if (portconfigRightPanels) portconfigRightPanels.style.display = 'none';
     
     // Hide all sidebar content
     if (ladderComponents) ladderComponents.style.display = 'none';
     if (drawingComponents) drawingComponents.style.display = 'none';
     if (modelComponents) modelComponents.style.display = 'none';
+    if (portConfigComponents) portConfigComponents.style.display = 'none';
     
     // Hide all header controls
     if (ladderControls) ladderControls.style.display = 'none';
@@ -85,7 +90,10 @@ function switchToView(viewType) {
         
     } else if (viewType === 'portconfig') {
         if (portconfigWorkspace) portconfigWorkspace.style.display = 'block';
-        if (sidebar) sidebar.style.display = 'none'; // Hide sidebars for port config
+        if (portConfigComponents) portConfigComponents.style.display = 'block';
+        if (portconfigRightPanels) portconfigRightPanels.style.display = 'block';
+        if (sidebar) sidebar.style.display = 'block';
+        if (sidebarRight) sidebarRight.style.display = 'block';
         if (viewPortConfigBtn) {
             viewPortConfigBtn.classList.remove('btn-secondary');
             viewPortConfigBtn.classList.add('btn-primary');
