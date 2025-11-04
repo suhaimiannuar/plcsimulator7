@@ -297,4 +297,181 @@ class ModelPortsManager {
         });
         sceneInstance.portMarkers = [];
     }
+
+    /**
+     * Load and display ports from catalog data for a model
+     * @param {Object} sceneInstance - The 3D scene instance
+     * @param {THREE.Object3D} modelObject - The loaded 3D model
+     * @param {Object} modelData - Model data from catalog (includes ports array)
+     */
+    loadPortsFromCatalog(sceneInstance, modelObject, modelData) {
+        if (!modelData || !modelData.ports || modelData.ports.length === 0) {
+            console.log('No ports defined in catalog for model:', modelData?.name);
+            return;
+        }
+
+        const modelName = modelData.name;
+        console.log(`Loading ${modelData.ports.length} ports from catalog for ${modelName}`);
+        
+        // Store ports in the model's port map
+        if (!sceneInstance.modelPorts.has(modelName)) {
+            sceneInstance.modelPorts.set(modelName, []);
+        }
+        
+        // Add each port from catalog
+        modelData.ports.forEach((catalogPort, index) => {
+            // Convert catalog port format to internal format
+            const port = {
+                label: catalogPort.label,
+                type: 'input', // Default type
+                worldPosition: catalogPort.worldPosition,
+                localPosition: catalogPort.localPosition,
+                normal: catalogPort.normal,
+                size: 8 // Default size
+            };
+            
+            // Add to model's port list
+            sceneInstance.modelPorts.get(modelName).push(port);
+            
+            // Create visual marker
+            this.createCatalogPortMarker(sceneInstance, modelObject, port);
+        });
+        
+        sceneInstance.log(`✅ ${modelData.ports.length} port(s) loaded from catalog for ${modelName}`, 'success');
+        this.updatePortsList(sceneInstance);
+    }
+
+    /**
+     * Create visual marker for a catalog port
+     * @param {Object} sceneInstance - The 3D scene instance
+     * @param {THREE.Object3D} modelObject - The parent model object
+     * @param {Object} port - Port data with worldPosition, normal, label
+     */
+    createCatalogPortMarker(sceneInstance, modelObject, port) {
+        // Convert port position to Vector3
+        const portPos = new THREE.Vector3(
+            port.worldPosition.x,
+            port.worldPosition.y,
+            port.worldPosition.z
+        );
+        
+        // Adjust position relative to model's current position
+        const adjustedPos = portPos.clone().add(modelObject.position);
+        
+        // 1. Port sphere (small red dot)
+        const sphereGeometry = new THREE.SphereGeometry(port.size || 3, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.9,
+            depthTest: true
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.copy(adjustedPos);
+        sphere.userData = { 
+            isPort: true, 
+            portLabel: port.label,
+            modelName: modelObject.userData.modelName || modelObject.userData.name,
+            portData: port
+        };
+        
+        sceneInstance.scene.add(sphere);
+        sceneInstance.portMarkers.push(sphere);
+        
+        // 2. Direction arrow (cyan) - if port has normal
+        if (port.normal) {
+            const normalVector = new THREE.Vector3(
+                port.normal.x, 
+                port.normal.y, 
+                port.normal.z
+            );
+            const arrowStart = adjustedPos.clone();
+            const arrowEnd = adjustedPos.clone().add(normalVector.multiplyScalar(15));
+            
+            // Arrow line
+            const arrowGeometry = new THREE.BufferGeometry().setFromPoints([
+                arrowStart,
+                arrowEnd
+            ]);
+            const arrowMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ffff,
+                linewidth: 2,
+                depthTest: true
+            });
+            const arrowLine = new THREE.Line(arrowGeometry, arrowMaterial);
+            arrowLine.userData = { isPort: true, portLabel: port.label };
+            
+            sceneInstance.scene.add(arrowLine);
+            sceneInstance.portMarkers.push(arrowLine);
+            
+            // Arrow cone head
+            const coneGeometry = new THREE.ConeGeometry(2, 6, 8);
+            const coneMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+            cone.position.copy(arrowEnd);
+            
+            // Orient cone to point along normal
+            cone.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                normalVector.clone().normalize()
+            );
+            cone.userData = { isPort: true, portLabel: port.label };
+            
+            sceneInstance.scene.add(cone);
+            sceneInstance.portMarkers.push(cone);
+        }
+        
+        // 3. Label (text sprite)
+        if (port.label) {
+            const labelOffset = new THREE.Vector3(0, 20, 0);
+            const labelPos = adjustedPos.clone().add(labelOffset);
+            
+            // Create text sprite
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+            
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            context.font = 'Bold 28px Arial';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(port.label, canvas.width / 2, canvas.height / 2);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ 
+                map: texture,
+                depthTest: false,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.copy(labelPos);
+            sprite.scale.set(15, 4, 1);
+            sprite.userData = { isPort: true, portLabel: port.label };
+            sprite.renderOrder = 1000;
+            
+            sceneInstance.scene.add(sprite);
+            sceneInstance.portMarkers.push(sprite);
+            
+            // Label connection line (yellow)
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                adjustedPos,
+                labelPos
+            ]);
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0xffff00,
+                linewidth: 1,
+                depthTest: false
+            });
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            line.userData = { isPort: true, portLabel: port.label };
+            line.renderOrder = 999;
+            
+            sceneInstance.scene.add(line);
+            sceneInstance.portMarkers.push(line);
+        }
+    }
 }

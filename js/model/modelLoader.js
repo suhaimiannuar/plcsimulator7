@@ -46,6 +46,11 @@ class ModelLoaderManager {
             // Add physics body
             sceneInstance.addPhysicsBody(mesh, geometry);
             
+            // Load ports from catalog if available
+            if (modelData && modelData.ports && modelData.ports.length > 0) {
+                sceneInstance.portsManager.loadPortsFromCatalog(sceneInstance, mesh, modelData);
+            }
+            
             sceneInstance.log(`✅ ${name} loaded and placed on floor!`, 'success');
             sceneInstance.updateSceneObjectsList();
             
@@ -131,6 +136,11 @@ class ModelLoaderManager {
             
             // Add physics body using bounding box
             sceneInstance.addPhysicsBodyFromBBox(object, size);
+            
+            // Load ports from catalog if available
+            if (modelData && modelData.ports && modelData.ports.length > 0) {
+                sceneInstance.portsManager.loadPortsFromCatalog(sceneInstance, object, modelData);
+            }
             
             sceneInstance.log(`✅ ${name} loaded! Size: ${size.x.toFixed(1)}×${size.y.toFixed(1)}×${size.z.toFixed(1)}mm`, 'success');
             sceneInstance.log(`📍 Position: (${object.position.x.toFixed(1)}, ${object.position.y.toFixed(1)}, ${object.position.z.toFixed(1)})`, 'info');
