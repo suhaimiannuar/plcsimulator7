@@ -25,6 +25,13 @@ class ModelLoaderManager {
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
+            
+            // Generate unique instance ID
+            const instanceId = `obj_${sceneInstance.objectInstanceCounter++}`;
+            const instanceName = `${name}_${instanceId}`;
+            
+            mesh.userData.instanceId = instanceId;
+            mesh.userData.instanceName = instanceName;
             mesh.userData.name = name;
             mesh.userData.modelName = name;
             mesh.userData.format = 'stl';
@@ -105,6 +112,12 @@ class ModelLoaderManager {
                 }
             });
             
+            // Generate unique instance ID
+            const instanceId = `obj_${sceneInstance.objectInstanceCounter++}`;
+            const instanceName = `${name}_${instanceId}`;
+            
+            object.userData.instanceId = instanceId;
+            object.userData.instanceName = instanceName;
             object.userData.name = name;
             object.userData.modelName = name;
             object.userData.format = 'obj';

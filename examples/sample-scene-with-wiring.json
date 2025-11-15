@@ -1,0 +1,153 @@
+{
+  "version": "1.1",
+  "timestamp": "2025-11-09T12:00:00.000Z",
+  "mountingConfig": {
+    "type": "box",
+    "width": 300,
+    "height": 200,
+    "depth": 200
+  },
+  "objects": [
+    {
+      "name": "PCB Board",
+      "modelName": "PCB Board",
+      "format": "obj",
+      "position": {
+        "x": 50,
+        "y": 30.5,
+        "z": 20
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1000,
+        "y": 1000,
+        "z": 1000
+      },
+      "ports": [
+        {
+          "label": "Port_1",
+          "worldPosition": {
+            "x": 70.52,
+            "y": 33.71,
+            "z": 54
+          },
+          "localPosition": {
+            "x": 20.52,
+            "y": 3.21,
+            "z": 34
+          },
+          "normal": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          }
+        },
+        {
+          "label": "Port_3.5",
+          "worldPosition": {
+            "x": 38.55,
+            "y": 42.1,
+            "z": 47.42
+          },
+          "localPosition": {
+            "x": -11.45,
+            "y": 11.6,
+            "z": 27.42
+          },
+          "normal": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "PLC",
+      "modelName": "PLC",
+      "format": "stl",
+      "position": {
+        "x": -80,
+        "y": 45,
+        "z": 30
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "ports": []
+    }
+  ],
+  "wires": [
+    {
+      "id": "wire-0",
+      "portA": {
+        "label": "Port_1",
+        "localPosition": {
+          "x": 20.52,
+          "y": 3.21,
+          "z": 34
+        },
+        "worldPosition": {
+          "x": 70.52,
+          "y": 33.71,
+          "z": 54
+        }
+      },
+      "portB": {
+        "label": "Port_3.5",
+        "localPosition": {
+          "x": -11.45,
+          "y": 11.6,
+          "z": 27.42
+        },
+        "worldPosition": {
+          "x": 38.55,
+          "y": 42.1,
+          "z": 47.42
+        }
+      },
+      "wireType": "signal",
+      "wireGauge": "16",
+      "length": 85.3,
+      "hasWaypoints": true,
+      "waypoints": [
+        {
+          "x": 70.52,
+          "y": 33.71,
+          "z": 54
+        },
+        {
+          "x": 70,
+          "y": 50,
+          "z": 54
+        },
+        {
+          "x": 50,
+          "y": 50,
+          "z": 54
+        },
+        {
+          "x": 50,
+          "y": 50,
+          "z": 47.42
+        },
+        {
+          "x": 38.55,
+          "y": 42.1,
+          "z": 47.42
+        }
+      ]
+    }
+  ]
+}

@@ -5,7 +5,7 @@ class ModelToolsManager {
         this.rulerPoints = [];
         this.rulerLine = null;
         this.rulerLabel = null;
-        this.gridHelper = null;
+        // Note: gridHelper removed - using 3D mounting grids in modelPhysics.js
         this.collisionMeshes = new Map();
     }
     
@@ -116,65 +116,28 @@ class ModelToolsManager {
     }
     
     // ==================== GRID METHODS ====================
-    
-    updateGrid(sceneInstance) {
-        // Remove existing grid
-        if (this.gridHelper) {
-            sceneInstance.scene.remove(this.gridHelper);
-            if (this.gridHelper.geometry) this.gridHelper.geometry.dispose();
-            if (this.gridHelper.material) this.gridHelper.material.dispose();
-            this.gridHelper = null;
-        }
-        
-        if (!sceneInstance.gridVisible) return;
-        
-        const { width, depth } = sceneInstance.mountingConfig;
-        
-        // Create custom grid that fits exactly within mounting area (width × depth)
-        const geometry = new THREE.BufferGeometry();
-        const material = new THREE.LineBasicMaterial({ color: 0x444444 });
-        
-        const vertices = [];
-        const divisionsX = sceneInstance.gridSize;
-        const divisionsZ = sceneInstance.gridSize;
-        const stepX = width / divisionsX;
-        const stepZ = depth / divisionsZ;
-        const halfWidth = width / 2;
-        const halfDepth = depth / 2;
-        
-        // Create vertical lines (along Z axis)
-        for (let i = 0; i <= divisionsX; i++) {
-            const x = -halfWidth + (i * stepX);
-            vertices.push(x, 0, -halfDepth);
-            vertices.push(x, 0, halfDepth);
-        }
-        
-        // Create horizontal lines (along X axis)
-        for (let i = 0; i <= divisionsZ; i++) {
-            const z = -halfDepth + (i * stepZ);
-            vertices.push(-halfWidth, 0, z);
-            vertices.push(halfWidth, 0, z);
-        }
-        
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        this.gridHelper = new THREE.LineSegments(geometry, material);
-        this.gridHelper.position.y = 1;
-        sceneInstance.scene.add(this.gridHelper);
-    }
+    // Note: Grid rendering moved to modelPhysics.js (3D mounting grids)
+    // These methods now only control the 3D mounting grids
     
     toggleGrid(sceneInstance) {
         sceneInstance.gridVisible = !sceneInstance.gridVisible;
-        this.updateGrid(sceneInstance);
+        
+        // Toggle 3D mounting grids
+        if (sceneInstance.mountingGrids) {
+            sceneInstance.mountingGrids.visible = sceneInstance.gridVisible;
+        }
+        
         sceneInstance.log(`Grid ${sceneInstance.gridVisible ? 'shown' : 'hidden'}`, 'info');
     }
     
     setGridSize(sceneInstance, divisions) {
-        sceneInstance.gridSize = divisions;
-        this.updateGrid(sceneInstance);
-        sceneInstance.log(`Grid divisions: ${divisions}`, 'info');
-    }
-    
-    // ==================== COLLISION DETECTION ====================
+        // Update 3D mounting grids
+        if (sceneInstance.physicsManager) {
+            sceneInstance.physicsManager.updateMountingGridSize(sceneInstance, divisions);
+        }
+        
+        sceneInstance.log(`Grid size: ${divisions}mm`, 'info');
+    }    // ==================== COLLISION DETECTION ====================
     
     checkCollisions(sceneInstance) {
         const collisionWarning = document.getElementById('collision-warning');

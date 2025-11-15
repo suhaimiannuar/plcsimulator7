@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyEDA-Style Wire Routing Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #005a9e;
+        }
+        
+        button:active {
+            background: #004578;
+        }
+        
+        button.active {
+            background: #00a651;
+        }
+        
+        select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        #canvas-container {
+            position: relative;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        canvas {
+            display: block;
+            cursor: default;
+        }
+        
+        .info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-left: 4px solid #007acc;
+            border-radius: 4px;
+        }
+        
+        .info h3 {
+            margin-top: 0;
+            color: #007acc;
+        }
+        
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .info li {
+            margin: 5px 0;
+        }
+        
+        .wire-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .wire-list h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .wire-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .wire-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .wire-item.selected {
+            border-color: #00a651;
+            background: #e8f8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 EasyEDA-Style Wire Routing Test</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>View:</label>
+                <button id="btn-top-view">Top (XZ)</button>
+                <button id="btn-front-view">Front (XY)</button>
+                <button id="btn-side-view">Side (YZ)</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Grid:</label>
+                <select id="grid-size">
+                    <option value="5">5mm</option>
+                    <option value="10" selected>10mm</option>
+                    <option value="25">25mm</option>
+                    <option value="50">50mm</option>
+                </select>
+                <button id="btn-toggle-grid">Toggle Grid</button>
+            </div>
+            
+            <div class="control-group">
+                <button id="btn-toggle-ports">Toggle Ports</button>
+                <button id="btn-reset-view">Reset View</button>
+                <button id="btn-clear-wires">Clear Wires</button>
+            </div>
+        </div>
+        
+        <div id="canvas-container">
+            <canvas id="wire-canvas" width="1200" height="600"></canvas>
+        </div>
+        
+        <div class="wire-list">
+            <h3>Wire List</h3>
+            <div id="wire-list-content">No wires created yet</div>
+        </div>
+        
+        <div class="info">
+            <h3>Instructions:</h3>
+            <ul>
+                <li><strong>Click a port</strong> to start routing a new wire</li>
+                <li><strong>Click</strong> to add corners (automatically snaps to 90° angles)</li>
+                <li><strong>Click another port</strong> to complete the wire connection</li>
+                <li><strong>ENTER or SPACE</strong> to finish wire without connecting (creates hanging wire)</li>
+                <li><strong>Click hanging wire end (⊗)</strong> to resume routing from that point</li>
+                <li><strong>3D Routing Workflow:</strong>
+                    <ol style="margin-top: 5px;">
+                        <li>Route in Top view (XZ plane)</li>
+                        <li>Press SPACE to create hanging wire</li>
+                        <li>Switch to Front view (XY plane)</li>
+                        <li>Click the hanging end (⊗) to resume</li>
+                        <li>Continue routing in new plane - creates true 3D path!</li>
+                        <li>Plane transitions marked with magenta double rings ⊚</li>
+                    </ol>
+                </li>
+                <li><strong>ESC</strong> to cancel wire routing</li>
+                <li><strong>Click a wire</strong> to select it</li>
+                <li><strong>DELETE or BACKSPACE</strong> to delete selected wire</li>
+                <li><strong>Middle mouse or Shift+Left drag</strong> to pan canvas</li>
+                <li><strong>Mouse wheel</strong> to zoom</li>
+                <li><strong>G</strong> to toggle grid visibility</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Load all required scripts -->
+    <script src="js/drawing/viewManager.js"></script>
+    <script src="js/drawing/gridSystem.js"></script>
+    <script src="js/drawing/wireRouting.js"></script>
+    
+    <script>
+        // Mock ports manager for testing
+        class MockPortsManager {
+            constructor() {
+                this.ports = this.createMockPorts();
+            }
+            
+            createMockPorts() {
+                // Create some test ports in 3D space
+                return [
+                    { id: 'port1', label: 'Motor+', worldPosition: { x: 50, y: 0, z: 50 }, type: 'power' },
+                    { id: 'port2', label: 'Motor-', worldPosition: { x: 150, y: 0, z: 50 }, type: 'power' },
+                    { id: 'port3', label: 'Sensor1', worldPosition: { x: 50, y: 0, z: 150 }, type: 'signal' },
+                    { id: 'port4', label: 'Sensor2', worldPosition: { x: 150, y: 0, z: 150 }, type: 'signal' },
+                    { id: 'port5', label: 'GND', worldPosition: { x: 100, y: 0, z: 200 }, type: 'ground' },
+                    { id: 'port6', label: 'VCC', worldPosition: { x: 200, y: 0, z: 100 }, type: 'power' },
+                    { id: 'port7', label: 'Data', worldPosition: { x: 250, y: 0, z: 150 }, type: 'data' },
+                    { id: 'port8', label: 'Clock', worldPosition: { x: 250, y: 0, z: 50 }, type: 'data' }
+                ];
+            }
+            
+            getAllPortsWithWorldPositions() {
+                return this.ports;
+            }
+        }
+        
+        // Initialize the system
+        const canvas = document.getElementById('wire-canvas');
+        const mockPortsManager = new MockPortsManager();
+        
+        // Create integration without 3D scene (testing 2D only)
+        const viewManager = new ViewManager();
+        const gridSystem = new GridSystem();
+        const wireRouter = new WireRoutingSystem(viewManager, gridSystem);
+        
+        // Simplified integration for testing
+        const integration = {
+            canvas: canvas,
+            ctx: canvas.getContext('2d'),
+            viewManager: viewManager,
+            gridSystem: gridSystem,
+            wireRouter: wireRouter,
+            portsManager: mockPortsManager,
+            
+            scale: 3,
+            offset: { x: 100, y: 100 },
+            isDraggingCanvas: false,
+            lastMousePos: null,
+            mode: 'view',
+            hoveredPort: null,
+            showGrid: true,
+            showPorts: true,
+            portClickRadius: 15
+        };
+        
+        // Event handlers
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+            
+            integration.lastMousePos = { x: canvasX, y: canvasY };
+            
+            if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+                integration.isDraggingCanvas = true;
+                canvas.style.cursor = 'grabbing';
+            } else if (e.button === 0) {
+                handleLeftClick(canvasX, canvasY);
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+            
+            if (integration.isDraggingCanvas && integration.lastMousePos) {
+                const dx = canvasX - integration.lastMousePos.x;
+                const dy = canvasY - integration.lastMousePos.y;
+                integration.offset.x += dx;
+                integration.offset.y += dy;
+            } else {
+                handleMouseMove(canvasX, canvasY);
+            }
+            
+            integration.lastMousePos = { x: canvasX, y: canvasY };
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1 || (e.button === 0 && integration.isDraggingCanvas)) {
+                integration.isDraggingCanvas = false;
+                canvas.style.cursor = 'default';
+            }
+            integration.lastMousePos = null;
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            integration.scale *= delta;
+            integration.scale = Math.max(0.1, Math.min(10, integration.scale));
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (wireRouter.cancelWire()) {
+                    integration.mode = 'view';
+                    console.log('Wire routing cancelled');
+                }
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                // Finish wire without connecting to port (hanging wire)
+                if (integration.mode === 'wire-routing' && wireRouter.isRouting) {
+                    e.preventDefault();
+                    wireRouter.completeWire(null); // null = no end port
+                    integration.mode = 'view';
+                    console.log('Hanging wire completed');
+                    updateWireList();
+                }
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (wireRouter.deleteSelectedWire()) {
+                    console.log('Wire deleted');
+                    updateWireList();
+                }
+            } else if (e.key === 'g' || e.key === 'G') {
+                integration.showGrid = !integration.showGrid;
+                console.log(`Grid: ${integration.showGrid ? 'ON' : 'OFF'}`);
+            }
+        });
+        
+        function handleLeftClick(canvasX, canvasY) {
+            const worldPos = viewManager.canvasToWorld(
+                canvasX, canvasY,
+                canvas.width, canvas.height,
+                integration.scale, integration.offset
+            );
+            
+            if (integration.mode === 'wire-routing' && wireRouter.isRouting) {
+                const clickedPort = findPortAtCanvas(canvasX, canvasY);
+                
+                if (clickedPort && clickedPort !== wireRouter.currentWire.startPort) {
+                    wireRouter.completeWire(clickedPort);
+                    integration.mode = 'view';
+                    console.log('Wire completed');
+                    updateWireList();
+                } else {
+                    wireRouter.addWaypoint();
+                }
+            } else {
+                // Check for hanging wire end first
+                console.log('Checking for hanging wire at:', worldPos);
+                const hangingWire = wireRouter.findHangingWireEnd(worldPos);
+                if (hangingWire) {
+                    // Resume routing from hanging wire
+                    console.log('Found hanging wire:', hangingWire.id);
+                    if (wireRouter.resumeWire(hangingWire)) {
+                        integration.mode = 'wire-routing';
+                        console.log('✅ Resumed routing from hanging wire');
+                        updateWireList();
+                    }
+                    return;
+                } else {
+                    console.log('No hanging wire found at click position');
+                }
+                
+                const clickedPort = findPortAtCanvas(canvasX, canvasY);
+                
+                if (clickedPort) {
+                    if (wireRouter.startWire(clickedPort, worldPos)) {
+                        integration.mode = 'wire-routing';
+                        console.log('Started routing wire');
+                    }
+                } else {
+                    const selectedWire = wireRouter.selectWire(worldPos);
+                    if (selectedWire) {
+                        integration.mode = 'wire-editing';
+                        console.log('Wire selected');
+                        updateWireList();
+                    } else {
+                        integration.mode = 'view';
+                    }
+                }
+            }
+        }
+        
+        function handleMouseMove(canvasX, canvasY) {
+            const worldPos = viewManager.canvasToWorld(
+                canvasX, canvasY,
+                canvas.width, canvas.height,
+                integration.scale, integration.offset
+            );
+            
+            if (integration.mode === 'wire-routing' && wireRouter.isRouting) {
+                wireRouter.updatePreview(worldPos);
+            }
+            
+            // Check for hovering over hanging wire end or port
+            const hoveredHangingWire = wireRouter.findHangingWireEnd(worldPos);
+            integration.hoveredPort = findPortAtCanvas(canvasX, canvasY);
+            integration.hoveredHangingWire = hoveredHangingWire;
+            
+            canvas.style.cursor = (integration.hoveredPort || hoveredHangingWire) ? 'pointer' : 'default';
+        }
+        
+        function findPortAtCanvas(canvasX, canvasY) {
+            const ports = mockPortsManager.getAllPortsWithWorldPositions();
+            
+            for (const port of ports) {
+                const canvasPos = viewManager.worldToCanvas(
+                    port.worldPosition,
+                    canvas.width, canvas.height,
+                    integration.scale, integration.offset
+                );
+                
+                const dx = canvasX - canvasPos.x;
+                const dy = canvasY - canvasPos.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < integration.portClickRadius) {
+                    return port;
+                }
+            }
+            
+            return null;
+        }
+        
+        function updateWireList() {
+            const wires = wireRouter.getAllWires();
+            const listDiv = document.getElementById('wire-list-content');
+            
+            if (wires.length === 0) {
+                listDiv.innerHTML = 'No wires created yet';
+                return;
+            }
+            
+            listDiv.innerHTML = wires.map((wire, index) => {
+                const isSelected = wire === wireRouter.selectedWire;
+                const endLabel = wire.endPort ? wire.endPort.label : '<em>hanging</em>';
+                const wireStatus = wire.endPort ? '' : ' 🔗';
+                
+                // Show plane transitions if any
+                let planeInfo = '';
+                if (wire.planeTransitions && wire.planeTransitions.length > 0) {
+                    const planes = [wire.plane || 'XZ'];
+                    wire.planeTransitions.forEach(t => planes.push(t.toPlane));
+                    planeInfo = ` | 3D: ${planes.join('→')}`;
+                }
+                
+                return `
+                    <div class="wire-item ${isSelected ? 'selected' : ''}" onclick="selectWire(${index})">
+                        <strong>${wire.startPort.label}</strong> → <strong>${endLabel}</strong>${wireStatus}
+                        <br>
+                        Length: ${wire.length.toFixed(1)}mm | Type: ${wire.wireType} | Waypoints: ${wire.waypoints.length}${planeInfo}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function selectWire(index) {
+            const wires = wireRouter.getAllWires();
+            wireRouter.selectedWire = wires[index];
+            updateWireList();
+        }
+        
+        // Draw loop
+        function draw() {
+            integration.ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (integration.showGrid) {
+                gridSystem.drawGrid(
+                    integration.ctx,
+                    viewManager,
+                    canvas.width,
+                    canvas.height,
+                    integration.scale,
+                    integration.offset
+                );
+            }
+            
+            if (integration.showPorts) {
+                drawPorts();
+            }
+            
+            wireRouter.drawWires(
+                integration.ctx,
+                viewManager,
+                integration.scale,
+                integration.offset
+            );
+            
+            // Highlight hovered hanging wire end
+            if (integration.hoveredHangingWire) {
+                drawHangingWireHighlight(integration.hoveredHangingWire);
+            }
+            
+            drawModeIndicator();
+            
+            requestAnimationFrame(draw);
+        }
+        
+        function drawHangingWireHighlight(wire) {
+            if (!wire || !wire.waypoints || wire.waypoints.length === 0) return;
+            
+            const endPoint = wire.waypoints[wire.waypoints.length - 1];
+            const canvasPos = viewManager.worldToCanvas(
+                endPoint,
+                canvas.width, canvas.height,
+                integration.scale, integration.offset
+            );
+            
+            integration.ctx.save();
+            
+            // Draw pulsing yellow circle
+            integration.ctx.beginPath();
+            integration.ctx.arc(canvasPos.x, canvasPos.y, 12, 0, Math.PI * 2);
+            integration.ctx.strokeStyle = '#ffff00';
+            integration.ctx.lineWidth = 3;
+            integration.ctx.stroke();
+            
+            // Draw smaller inner circle
+            integration.ctx.beginPath();
+            integration.ctx.arc(canvasPos.x, canvasPos.y, 8, 0, Math.PI * 2);
+            integration.ctx.strokeStyle = '#ff8800';
+            integration.ctx.lineWidth = 2;
+            integration.ctx.stroke();
+            
+            integration.ctx.restore();
+        }
+        
+        function drawPorts() {
+            const ports = mockPortsManager.getAllPortsWithWorldPositions();
+            
+            ports.forEach(port => {
+                const canvasPos = viewManager.worldToCanvas(
+                    port.worldPosition,
+                    canvas.width, canvas.height,
+                    integration.scale, integration.offset
+                );
+                
+                const isHovered = port === integration.hoveredPort;
+                const isStartPort = wireRouter.isRouting && 
+                                   wireRouter.currentWire && 
+                                   port === wireRouter.currentWire.startPort;
+                
+                integration.ctx.save();
+                
+                integration.ctx.beginPath();
+                integration.ctx.arc(canvasPos.x, canvasPos.y, 6, 0, Math.PI * 2);
+                integration.ctx.fillStyle = isStartPort ? '#00ff00' : (isHovered ? '#ffff00' : '#ff0000');
+                integration.ctx.fill();
+                integration.ctx.strokeStyle = '#000000';
+                integration.ctx.lineWidth = 2;
+                integration.ctx.stroke();
+                
+                if (isHovered || isStartPort) {
+                    integration.ctx.font = 'bold 12px Arial';
+                    integration.ctx.fillStyle = '#000000';
+                    integration.ctx.textAlign = 'center';
+                    integration.ctx.fillText(port.label, canvasPos.x, canvasPos.y - 15);
+                }
+                
+                integration.ctx.restore();
+            });
+        }
+        
+        function drawModeIndicator() {
+            integration.ctx.save();
+            integration.ctx.font = '14px Arial';
+            integration.ctx.fillStyle = '#000000';
+            integration.ctx.textAlign = 'left';
+            
+            let modeText = 'Mode: ';
+            switch (integration.mode) {
+                case 'view':
+                    modeText += 'View (click port to start wire)';
+                    break;
+                case 'wire-routing':
+                    modeText += 'Routing Wire (click to add corner, ESC to cancel)';
+                    break;
+                case 'wire-editing':
+                    modeText += 'Editing Wire (DEL to delete)';
+                    break;
+            }
+            
+            const view = viewManager.getCurrentView();
+            const viewText = `View: ${view.name} | Grid: ${gridSystem.gridSize}mm`;
+            
+            integration.ctx.fillText(modeText, 10, 20);
+            integration.ctx.fillText(viewText, 10, 40);
+            
+            integration.ctx.restore();
+        }
+        
+        // Button handlers
+        document.getElementById('btn-top-view').addEventListener('click', () => {
+            viewManager.setView('top');
+        });
+        
+        document.getElementById('btn-front-view').addEventListener('click', () => {
+            viewManager.setView('front');
+        });
+        
+        document.getElementById('btn-side-view').addEventListener('click', () => {
+            viewManager.setView('side-left');
+        });
+        
+        document.getElementById('grid-size').addEventListener('change', (e) => {
+            gridSystem.setGridSize(parseInt(e.target.value));
+        });
+        
+        document.getElementById('btn-toggle-grid').addEventListener('click', () => {
+            integration.showGrid = !integration.showGrid;
+        });
+        
+        document.getElementById('btn-toggle-ports').addEventListener('click', () => {
+            integration.showPorts = !integration.showPorts;
+        });
+        
+        document.getElementById('btn-reset-view').addEventListener('click', () => {
+            integration.scale = 3;
+            integration.offset = { x: 100, y: 100 };
+        });
+        
+        document.getElementById('btn-clear-wires').addEventListener('click', () => {
+            if (confirm('Clear all wires?')) {
+                wireRouter.clearAllWires();
+                updateWireList();
+            }
+        });
+        
+        // Start draw loop
+        draw();
+        
+        console.log('✅ EasyEDA-style wire routing test ready!');
+    </script>
+</body>
+</html>

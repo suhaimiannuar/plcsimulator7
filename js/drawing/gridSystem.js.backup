@@ -1,0 +1,252 @@
+// gridSystem.js - Configurable 2D grid for wire routing
+
+class GridSystem {
+    constructor(gridSize = 10) {
+        this.gridSize = gridSize; // Default 10mm
+        this.gridSizes = [5, 10, 25, 50]; // Available grid sizes
+        this.visible = true;
+        this.color = '#444444';
+        this.majorLineColor = '#666666';
+        this.majorLineInterval = 5; // Every 5th line is major
+    }
+
+    /**
+     * Set grid size
+     */
+    setGridSize(size) {
+        if (!this.gridSizes.includes(size)) {
+            console.warn('Invalid grid size, using 10mm');
+            this.gridSize = 10;
+            return;
+        }
+        this.gridSize = size;
+        console.log(`📏 Grid size set to ${size}mm`);
+    }
+
+    /**
+     * Snap a value to the nearest grid line
+     */
+    snapToGrid(value) {
+        return Math.round(value / this.gridSize) * this.gridSize;
+    }
+
+    /**
+     * Snap a 2D point to grid
+     */
+    snapPoint(point) {
+        return {
+            x: this.snapToGrid(point.x),
+            y: this.snapToGrid(point.y)
+        };
+    }
+
+    /**
+     * Snap a 3D point to grid (keeps Z unchanged)
+     */
+    snapPoint3D(point) {
+        return {
+            x: this.snapToGrid(point.x),
+            y: this.snapToGrid(point.y),
+            z: this.snapToGrid(point.z)
+        };
+    }
+
+    /**
+     * Draw grid on canvas - constrained to mounting boundaries
+     * Grid is "painted" on the mounting surface like a mat/wallpaper
+     */
+    drawGrid(ctx, viewManager, canvasWidth, canvasHeight, scale = 1, offset = { x: 0, y: 0 }, mountingConfig) {
+        if (!this.visible) return;
+        if (!mountingConfig || !viewManager) return;
+
+        ctx.save();
+        
+        const { width, height, depth } = mountingConfig;
+        const currentView = viewManager.currentView;
+        
+        // Define the mounting rectangle boundaries based on view
+        // Grid starts at bottom-left corner of mounting (0,0 datum at corner)
+        let gridWidth, gridHeight, startX3D, startY3D, startZ3D;
+        
+        switch (currentView) {
+            case 'top':
+                // Top view: XZ plane (floor) - looking down at Y
+                // Grid covers the floor from corner to corner
+                gridWidth = width;       // X axis (left to right)
+                gridHeight = depth;      // Z axis (back to front)
+                startX3D = -width / 2;   // Left edge
+                startY3D = 1;            // Just above floor surface (floor is at y=0, thickness below)
+                startZ3D = -depth / 2;   // Back edge
+                break;
+                
+            case 'front':
+                // Front view: XY plane (back wall) - looking from back towards front
+                // Grid covers the back wall from corner to corner
+                gridWidth = width;       // X axis (left to right)
+                gridHeight = height;     // Y axis (bottom to top)
+                startX3D = -width / 2;   // Left edge
+                startY3D = 0;            // Floor level (bottom of box)
+                startZ3D = -depth / 2;   // Back wall position
+                break;
+                
+            case 'side-left':
+                // Side view: YZ plane (left wall) - looking from left side
+                // Grid covers the left wall from corner to corner
+                gridWidth = depth;       // Z axis (back to front)
+                gridHeight = height;     // Y axis (bottom to top)
+                startX3D = -width / 2;   // Left wall position
+                startY3D = 0;            // Floor level (bottom of box)
+                startZ3D = -depth / 2;   // Back edge
+                break;
+                
+            default:
+                return;
+        }
+        
+        // Calculate number of grid lines (including start and end boundaries)
+        const numLinesX = Math.floor(gridWidth / this.gridSize) + 1;
+        const numLinesY = Math.floor(gridHeight / this.gridSize) + 1;
+        
+        // First, draw the mounting boundary rectangle for reference
+        ctx.strokeStyle = '#888888';
+        ctx.lineWidth = 2;
+        
+        const corners = [];
+        switch (currentView) {
+            case 'top':
+                corners.push(
+                    { x: startX3D, y: startY3D, z: startZ3D },
+                    { x: startX3D + gridWidth, y: startY3D, z: startZ3D },
+                    { x: startX3D + gridWidth, y: startY3D, z: startZ3D + gridHeight },
+                    { x: startX3D, y: startY3D, z: startZ3D + gridHeight }
+                );
+                break;
+            case 'front':
+                corners.push(
+                    { x: startX3D, y: startY3D, z: startZ3D },
+                    { x: startX3D + gridWidth, y: startY3D, z: startZ3D },
+                    { x: startX3D + gridWidth, y: startY3D + gridHeight, z: startZ3D },
+                    { x: startX3D, y: startY3D + gridHeight, z: startZ3D }
+                );
+                break;
+            case 'side-left':
+                corners.push(
+                    { x: startX3D, y: startY3D, z: startZ3D },
+                    { x: startX3D, y: startY3D, z: startZ3D + gridWidth },
+                    { x: startX3D, y: startY3D + gridHeight, z: startZ3D + gridWidth },
+                    { x: startX3D, y: startY3D + gridHeight, z: startZ3D }
+                );
+                break;
+        }
+        
+        // Draw mounting boundary
+        ctx.beginPath();
+        const firstCorner = viewManager.worldToCanvas(corners[0], canvasWidth, canvasHeight, scale, offset);
+        ctx.moveTo(firstCorner.x, firstCorner.y);
+        for (let i = 1; i < corners.length; i++) {
+            const corner = viewManager.worldToCanvas(corners[i], canvasWidth, canvasHeight, scale, offset);
+            ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Draw vertical lines
+        for (let i = 0; i <= numLinesX; i++) {
+            const isMajor = i % this.majorLineInterval === 0;
+            ctx.strokeStyle = isMajor ? this.majorLineColor : this.color;
+            ctx.lineWidth = isMajor ? 1.5 : 0.5;
+            
+            const offset3D = i * this.gridSize;
+            let point1, point2;
+            
+            switch (currentView) {
+                case 'top':
+                    point1 = { x: startX3D + offset3D, y: startY3D, z: startZ3D };
+                    point2 = { x: startX3D + offset3D, y: startY3D, z: startZ3D + gridHeight };
+                    break;
+                case 'front':
+                    point1 = { x: startX3D + offset3D, y: startY3D, z: startZ3D };
+                    point2 = { x: startX3D + offset3D, y: startY3D + gridHeight, z: startZ3D };
+                    break;
+                case 'side-left':
+                    point1 = { x: startX3D, y: startY3D, z: startZ3D + offset3D };
+                    point2 = { x: startX3D, y: startY3D + gridHeight, z: startZ3D + offset3D };
+                    break;
+            }
+            
+            const canvasP1 = viewManager.worldToCanvas(point1, canvasWidth, canvasHeight, scale, offset);
+            const canvasP2 = viewManager.worldToCanvas(point2, canvasWidth, canvasHeight, scale, offset);
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasP1.x, canvasP1.y);
+            ctx.lineTo(canvasP2.x, canvasP2.y);
+            ctx.stroke();
+        }
+        
+        // Draw horizontal lines
+        for (let i = 0; i <= numLinesY; i++) {
+            const isMajor = i % this.majorLineInterval === 0;
+            ctx.strokeStyle = isMajor ? this.majorLineColor : this.color;
+            ctx.lineWidth = isMajor ? 1.5 : 0.5;
+            
+            const offset3D = i * this.gridSize;
+            let point1, point2;
+            
+            switch (currentView) {
+                case 'top':
+                    point1 = { x: startX3D, y: startY3D, z: startZ3D + offset3D };
+                    point2 = { x: startX3D + gridWidth, y: startY3D, z: startZ3D + offset3D };
+                    break;
+                case 'front':
+                    point1 = { x: startX3D, y: startY3D + offset3D, z: startZ3D };
+                    point2 = { x: startX3D + gridWidth, y: startY3D + offset3D, z: startZ3D };
+                    break;
+                case 'side-left':
+                    point1 = { x: startX3D, y: startY3D + offset3D, z: startZ3D };
+                    point2 = { x: startX3D, y: startY3D + offset3D, z: startZ3D + gridWidth };
+                    break;
+            }
+            
+            const canvasP1 = viewManager.worldToCanvas(point1, canvasWidth, canvasHeight, scale, offset);
+            const canvasP2 = viewManager.worldToCanvas(point2, canvasWidth, canvasHeight, scale, offset);
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasP1.x, canvasP1.y);
+            ctx.lineTo(canvasP2.x, canvasP2.y);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw grid info (current size, snap status)
+     */
+    drawGridInfo(ctx, x = 10, y = 30) {
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px monospace';
+        ctx.fillText(`Grid: ${this.gridSize}mm`, x, y);
+        ctx.restore();
+    }
+
+    /**
+     * Toggle grid visibility
+     */
+    toggleVisibility() {
+        this.visible = !this.visible;
+        return this.visible;
+    }
+
+    /**
+     * Get available grid sizes
+     */
+    getAvailableSizes() {
+        return this.gridSizes;
+    }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GridSystem;
+}

@@ -41,10 +41,147 @@ class ModelPhysicsManager {
             this.createShelf(sceneInstance, width, height, depth, wallThickness);
         }
         
-        // Update grid helper
-        sceneInstance.updateGrid();
+        // Add 3D grids to mounting surfaces
+        this.addMountingGrids(sceneInstance);
         
         sceneInstance.log(`✅ ${type.toUpperCase()} created: ${width}×${height}×${depth}mm`, 'success');
+    }
+    
+    /**
+     * Add 3D grid lines directly on mounting surfaces
+     */
+    addMountingGrids(sceneInstance, customGridSize = null) {
+        const { width, height, depth } = sceneInstance.mountingConfig;
+        const gridSize = customGridSize || sceneInstance.mountingGridSize || 10; // Use custom, instance, or default
+        const gridColor = 0x888888;
+        const gridGroup = new THREE.Group();
+        gridGroup.name = 'mountingGrids';
+        
+        // Remove existing grids
+        const existingGrids = sceneInstance.scene.getObjectByName('mountingGrids');
+        if (existingGrids) {
+            sceneInstance.scene.remove(existingGrids);
+        }
+        
+        // Floor grid (XZ plane at Y=thickness/2)
+        this.createSurfaceGrid(gridGroup, width, depth, gridSize, gridColor, 
+            new THREE.Vector3(0, 2.5, 0), 'xz'); // Just above floor surface
+        
+        // Back wall grid (XY plane at Z=-depth/2)
+        this.createSurfaceGrid(gridGroup, width, height, gridSize, gridColor,
+            new THREE.Vector3(0, 0, -depth/2 + 2.5), 'xy'); // Just in front of back wall, Y=0 at floor
+        
+        // Left wall grid (YZ plane at X=-width/2)
+        this.createSurfaceGrid(gridGroup, depth, height, gridSize, gridColor,
+            new THREE.Vector3(-width/2 + 2.5, 0, 0), 'yz'); // Just right of left wall, Y=0 at floor
+        
+        // Right wall grid (YZ plane at X=width/2)
+        this.createSurfaceGrid(gridGroup, depth, height, gridSize, gridColor,
+            new THREE.Vector3(width/2 - 2.5, 0, 0), 'yz'); // Just left of right wall, Y=0 at floor
+        
+        sceneInstance.scene.add(gridGroup);
+        sceneInstance.mountingGrids = gridGroup;
+        console.log('✅ 3D mounting grids created');
+    }
+    
+    /**
+     * Create grid lines on a surface
+     */
+    createSurfaceGrid(parentGroup, dimA, dimB, gridSize, color, position, plane) {
+        const material = new THREE.LineBasicMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.3 
+        });
+        
+        const gridGroup = new THREE.Group();
+        
+        // Calculate number of lines to cover the entire dimension
+        const numLinesA = Math.ceil(dimA / gridSize) + 1;
+        const numLinesB = Math.ceil(dimB / gridSize) + 1;
+        
+        // Starting positions
+        // For floor (xz): dimA=width (X), dimB=depth (Z) - both centered
+        // For walls (xy, yz): dimA is horizontal (centered), dimB is vertical (starts at 0)
+        let startA, startB, endA, endB;
+        
+        if (plane === 'xz') {
+            // Floor: centered in both X and Z
+            startA = -dimA / 2;
+            endA = dimA / 2;
+            startB = -dimB / 2;
+            endB = dimB / 2;
+        } else {
+            // Walls: centered horizontally, from floor (0) to top (dimB) vertically
+            startA = -dimA / 2;
+            endA = dimA / 2;
+            startB = 0;  // Start at floor level
+            endB = dimB; // End at top
+        }
+        
+        // Create grid lines in direction A
+        for (let i = 0; i < numLinesA; i++) {
+            const posA = startA + (i * gridSize);
+            if (posA > endA) break; // Don't exceed boundary
+            
+            const points = [];
+            
+            if (plane === 'xz') {
+                // Lines parallel to Z axis (floor)
+                points.push(new THREE.Vector3(posA, 0, startB));
+                points.push(new THREE.Vector3(posA, 0, endB));
+            } else if (plane === 'xy') {
+                // Lines parallel to Y axis (back wall)
+                points.push(new THREE.Vector3(posA, startB, 0));
+                points.push(new THREE.Vector3(posA, endB, 0));
+            } else if (plane === 'yz') {
+                // Lines parallel to Y axis (side walls)
+                points.push(new THREE.Vector3(0, startB, posA));
+                points.push(new THREE.Vector3(0, endB, posA));
+            }
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            gridGroup.add(line);
+        }
+        
+        // Create grid lines in direction B
+        for (let i = 0; i < numLinesB; i++) {
+            const posB = startB + (i * gridSize);
+            if (posB > endB) break; // Don't exceed boundary
+            
+            const points = [];
+            
+            if (plane === 'xz') {
+                // Lines parallel to X axis (floor)
+                points.push(new THREE.Vector3(startA, 0, posB));
+                points.push(new THREE.Vector3(endA, 0, posB));
+            } else if (plane === 'xy') {
+                // Lines parallel to X axis (back wall)
+                points.push(new THREE.Vector3(startA, posB, 0));
+                points.push(new THREE.Vector3(endA, posB, 0));
+            } else if (plane === 'yz') {
+                // Lines parallel to Z axis (side walls)
+                points.push(new THREE.Vector3(0, posB, startA));
+                points.push(new THREE.Vector3(0, posB, endA));
+            }
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            gridGroup.add(line);
+        }
+        
+        gridGroup.position.copy(position);
+        parentGroup.add(gridGroup);
+    }
+    
+    /**
+     * Update mounting grid size
+     */
+    updateMountingGridSize(sceneInstance, newGridSize) {
+        sceneInstance.mountingGridSize = newGridSize;
+        this.addMountingGrids(sceneInstance, newGridSize);
+        console.log(`✅ Mounting grid size updated to ${newGridSize}mm`);
     }
     
     createBox(sceneInstance, width, height, depth, thickness) {

@@ -428,6 +428,13 @@
                 <div id="model-viewer-container" style="width: 100%; height: calc(100vh - 120px); background: #f0f0f0; position: relative;">
                     <!-- Three.js canvas will be inserted here -->
                     
+                    <!-- 2D Wire Routing Overlay Canvas (for EasyEDA-style routing) -->
+                    <canvas id="wire-routing-overlay" 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                                   pointer-events: none; z-index: 50; display: none; 
+                                   background: transparent;">
+                    </canvas>
+                    
                     <!-- ViewCube - Top Right Corner (Canvas-based) -->
                     <div id="viewCubeContainer" style="position: absolute; top: 20px; right: 20px; z-index: 100;">
                         <div style="text-align: center; margin-bottom: 5px; font-size: 11px; color: #555; font-weight: bold;">View Cube</div>
@@ -445,7 +452,7 @@
                         </div>
                     </div>
                     
-                    <div id="model-viewer-status" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; font-family: monospace; max-height: 150px; overflow-y: auto; max-width: 400px; z-index: 10;">
+                    <div id="model-viewer-status" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; font-family: monospace; max-height: 150px; overflow-y: auto; max-width: 400px; z-index: 100; pointer-events: auto; user-select: text;">
                         <div class="log-entry">Ready to load models...</div>
                     </div>
                 </div>
@@ -521,8 +528,8 @@
                         <h2>👁️ View Mode</h2>
                         <div style="padding: 10px;">
                             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                                <button id="view2D" class="btn btn-success btn-small" style="flex: 1; font-size: 11px;">📐 2D Top View</button>
-                                <button id="view3D" class="btn btn-secondary btn-small" style="flex: 1; font-size: 11px;">🎲 3D View</button>
+                                <button id="view2D" class="btn btn-success btn-small" style="flex: 1; font-size: 11px;">📐 2D Ortho</button>
+                                <button id="view3D" class="btn btn-secondary btn-small" style="flex: 1; font-size: 11px;">🎲 3D Persp</button>
                             </div>
                             <p style="font-size: 10px; color: #888; margin: 0;">
                                 <strong>2D Mode:</strong> Arrange items from top-down view (easier layout)<br>
@@ -540,9 +547,9 @@
                                 <span>Show Grid</span>
                             </label>
                             <div style="margin-bottom: 10px;">
-                                <label style="font-size: 11px; color: #888;">Grid Divisions:</label>
-                                <input type="range" id="gridSize" min="10" max="50" value="20" style="width: 100%;">
-                                <span id="gridSizeValue" style="font-size: 11px; color: #888;">20</span>
+                                <label style="font-size: 11px; color: #888;">Grid Size (mm):</label>
+                                <input type="range" id="gridSize" min="5" max="50" value="10" step="5" style="width: 100%;">
+                                <span id="gridSizeValue" style="font-size: 11px; color: #888;">10mm</span>
                             </div>
                             <button id="toggleRuler" class="btn btn-secondary btn-small" style="width: 100%; margin-top: 10px;">
                                 📏 Ruler: OFF
@@ -616,48 +623,77 @@
                         </div>
                     </div>
 
-                    <!-- Wiring System -->
+                    <!-- Port Visibility Toggle -->
                     <div class="io-panel">
-                        <h2>⚡ Wiring</h2>
+                        <h2>👁️ Port Visibility</h2>
                         <div style="padding: 10px;">
+                            <button id="togglePortsVisibility" class="btn btn-secondary btn-small" style="width: 100%;">
+                                👁️ Show Ports: ON
+                            </button>
+                            <p style="font-size: 10px; color: #888; margin-top: 5px;">
+                                Toggle port markers and labels
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 2D Wire Routing (EasyEDA-style) -->
+                    <div class="io-panel" style="border: 2px solid #27ae60; box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);">
+                        <h2>🔌 2D Wire Routing</h2>
+                        <div style="padding: 10px;">
+                            <div style="background: #27ae60; padding: 6px; border-radius: 4px; margin-bottom: 10px; font-size: 11px; text-align: center;">
+                                ✅ <strong>NEW SYSTEM</strong> - Use This!
+                            </div>
                             <div style="margin-bottom: 10px;">
-                                <button id="toggleWireMode" class="btn btn-secondary btn-small" style="width: 100%;">
-                                    🔌 Wire Mode: OFF
+                                <button id="toggle2DWireMode" class="btn btn-secondary btn-small" style="width: 100%;">
+                                    📐 2D Wire Mode: OFF
                                 </button>
                             </div>
-                            <div id="wireControls" style="display: none;">
-                                <p style="font-size: 10px; color: #888; margin: 5px 0;">
-                                    Click on first port, then second port to create wire
+                            <div id="wire2DControls" style="display: none;">
+                                <p style="font-size: 10px; color: #888; margin: 5px 0 10px 0;">
+                                    Click port → add corners → SPACE to hang<br>
+                                    �️ Mouse wheel to zoom, Shift+Drag to pan<br>
+                                    �💡 Use view buttons below to rotate camera
                                 </p>
-                                <div style="margin: 10px 0;">
-                                    <label style="font-size: 11px; color: #888;">Wire Type:</label>
-                                    <select id="wireType" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
-                                        <option value="power">⚡ Power (L/N/PE)</option>
-                                        <option value="signal">📊 Signal</option>
-                                        <option value="ground">🔌 Ground</option>
-                                        <option value="data">💾 Data/Comm</option>
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">🎥 Camera View (Rotates Scene):</label>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button id="view-top" class="btn btn-info btn-small" style="flex: 1; padding: 5px; font-size: 11px;">
+                                            ⬇️ Top
+                                        </button>
+                                        <button id="view-front" class="btn btn-info btn-small" style="flex: 1; padding: 5px; font-size: 11px;">
+                                            👁️ Front
+                                        </button>
+                                        <button id="view-side" class="btn btn-info btn-small" style="flex: 1; padding: 5px; font-size: 11px;">
+                                            ◀️ Side
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">Port Display Size:</label>
+                                    <select id="wire-port-radius" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
+                                        <option value="4">Small (4px)</option>
+                                        <option value="6" selected>Medium (6px)</option>
+                                        <option value="8">Large (8px)</option>
+                                        <option value="10">X-Large (10px)</option>
                                     </select>
                                 </div>
-                                <div style="margin: 10px 0;">
-                                    <label style="font-size: 11px; color: #888;">Wire Gauge:</label>
-                                    <select id="wireGauge" style="width: 100%; padding: 5px; background: #2c3e50; color: white; border: 1px solid #555; border-radius: 3px;">
-                                        <option value="22">22 AWG (0.5mm²)</option>
-                                        <option value="20">20 AWG (0.75mm²)</option>
-                                        <option value="18">18 AWG (1.0mm²)</option>
-                                        <option value="16" selected>16 AWG (1.5mm²)</option>
-                                        <option value="14">14 AWG (2.5mm²)</option>
-                                        <option value="12">12 AWG (4.0mm²)</option>
-                                    </select>
+                                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                                    <button id="toggle-wire-ports" class="btn btn-secondary btn-small" style="flex: 1; font-size: 11px;">
+                                        📍 Ports
+                                    </button>
+                                    <button id="reset-wire-view" class="btn btn-secondary btn-small" style="flex: 1; font-size: 11px;">
+                                        � Reset
+                                    </button>
                                 </div>
-                                <button id="clearAllWires" class="btn btn-danger btn-small" style="width: 100%; margin-top: 5px;">
+                                <p style="font-size: 10px; color: #888; margin: 5px 0;">
+                                    💡 Grid controlled by View Controls panel
+                                </p>
+                                <button id="check-wire-status" class="btn btn-info btn-small" style="width: 100%; font-size: 11px; margin-bottom: 10px;">
+                                    🔍 Check Status
+                                </button>
+                                <button id="clear-all-2d-wires" class="btn btn-danger btn-small" style="width: 100%; font-size: 11px;">
                                     🗑️ Clear All Wires
                                 </button>
-                                <button id="exportWireList" class="btn btn-success btn-small" style="width: 100%; margin-top: 5px;">
-                                    📋 Export Wire List
-                                </button>
-                            </div>
-                            <div id="wiresList" style="margin-top: 10px; font-size: 11px; max-height: 150px; overflow-y: auto;">
-                                <p style="color: #888; font-size: 10px;">No wires connected</p>
                             </div>
                         </div>
                     </div>
@@ -874,6 +910,12 @@
     <script src="js/drawing/canvas.js"></script>
     <script src="js/drawing/init.js"></script>
     
+    <!-- 3D Wire Routing in 2D Canvas (EasyEDA-style) -->
+    <script src="js/drawing/viewManager.js"></script>
+    <script src="js/drawing/gridSystem.js"></script>
+    <script src="js/drawing/wireRouting.js"></script>
+    <script src="js/drawing/wireRoutingInit.js"></script>
+    
     <!-- View Toggle Controls -->
     <script src="js/shared/viewSwitching.js"></script>
     
@@ -883,6 +925,7 @@
     <script src="js/model/modelLoader.js"></script>
     <script src="js/model/modelPorts.js"></script>
     <script src="js/model/modelWiring.js"></script>
+    <script src="js/model/modelWiring3D.js"></script>
     <script src="js/model/modelTools.js"></script>
     <script src="js/model/modelStorage.js"></script>
     
@@ -929,6 +972,7 @@
                 this.mountingSurfaces = [];
                 this.boundaryWalls = [];
                 this.viewMode = '2d';
+                this.currentView = 'top'; // Track current orthographic view for wire routing
                 this.interactionEnabled = true;
                 
                 this.mountingConfig = {
@@ -939,20 +983,23 @@
                 };
                 
                 this.gridHelper = null;
-                this.gridVisible = true;
+                this.gridVisible = true; // Show 3D mounting grids
                 this.gridSize = 20;
+                this.mountingGridSize = 10; // 3D mounting grid size in mm
                 
                 this.rulerMode = false;
                 this.portEditMode = false;
                 this.modelPorts = new Map();
                 this.portMarkers = [];
+                this.portsVisible = true; // Ports visible by default
                 
                 this.wireMode = false;
-                this.wires = [];
-                this.selectedPortForWire = null;
-                this.wireIdCounter = 0;
+                this.wiring3DManager = new ModelWiring3DManager(); // New 3D wire system
                 
                 this.collisionMeshes = new Map();
+                
+                // Object instance counter for unique IDs
+                this.objectInstanceCounter = 0;
                 
                 this.init();
             }
@@ -1064,6 +1111,7 @@
             exportPortsConfig() { this.portsManager.exportPortsConfig(this); }
             importPortsConfig(file) { this.portsManager.importPortsConfig(this, file); }
             clearPortMarkers() { this.portsManager.clearPortMarkers(this); }
+            setPortVisualScale(scale) { this.portsManager.setPortVisualScale(this, scale); }
             
             // Wiring delegates
             toggleWireMode() { this.wiringManager.toggleWireMode(this); }
@@ -1126,6 +1174,45 @@
             
             // Setup 3D layout save/load buttons
             setup3DLayoutControls();
+            
+            // Initialize 3D wire routing system
+            if (typeof initWireRouting3D === 'function') {
+                initWireRouting3D();
+            }
+            
+            // Ensure we start in proper 2D mode with rotation DISABLED
+            // User must choose view via buttons (Top/Front/Side)
+            if (viewer3D.orbitControls) {
+                viewer3D.orbitControls.enableRotate = false;
+                viewer3D.orbitControls.enablePan = true;
+                viewer3D.orbitControls.enableZoom = true;
+            }
+            
+            // Setup keyboard shortcuts for wire routing
+            setupWireKeyboardShortcuts();
+            
+            console.log('✅ 3D Viewer initialized in 2D Orthographic mode with rotation enabled');
+        }
+        
+        function setupWireKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (!window.viewer3D || !window.viewer3D.wireMode) return;
+                
+                if (e.key === 'Escape') {
+                    // Cancel current wire
+                    if (window.viewer3D.wiring3DManager.currentWire) {
+                        window.viewer3D.wiring3DManager.cancelWire(window.viewer3D);
+                    }
+                }
+                
+                // Handle SPACE key to hang wire (leave wire open-ended)
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault(); // Prevent page scroll
+                    if (window.viewer3D.wiring3DManager.currentWire) {
+                        window.viewer3D.wiring3DManager.hangWire(window.viewer3D);
+                    }
+                }
+            });
         }
         
         function setup3DLayoutControls() {
@@ -1182,23 +1269,57 @@
                 view3DBtn.classList.remove('btn-success');
                 view3DBtn.classList.add('btn-secondary');
                 
+                // Initialize the view to top view on first load
+                if (viewer3D) {
+                    viewer3D.setView('top');
+                    if (window.wireRouting3D) {
+                        window.wireRouting3D.setView('top');
+                    }
+                    console.log('✅ Initial view set to top view');
+                }
+                
                 view2DBtn.addEventListener('click', () => {
                     if (viewer3D) {
                         viewer3D.switchTo2DView();
+                        // Re-enable rotation so view plane buttons work
+                        if (viewer3D.orbitControls) {
+                            viewer3D.orbitControls.enableRotate = true;
+                        }
+                        // Set to top view to ensure grid is created correctly
+                        viewer3D.setView('top');
+                        // Also update wire routing if active
+                        if (window.wireRouting3D) {
+                            window.wireRouting3D.setView('top');
+                        }
                         view2DBtn.classList.add('btn-success');
                         view2DBtn.classList.remove('btn-secondary');
                         view3DBtn.classList.remove('btn-success');
                         view3DBtn.classList.add('btn-secondary');
+                        console.log('✅ 2D Mode: Orthographic camera with top view');
                     }
                 });
                 
                 view3DBtn.addEventListener('click', () => {
                     if (viewer3D) {
+                        // Disable 2D wire mode when switching to 3D
+                        if (window.wireRouting3D && window.wireRouting3D.enabled) {
+                            window.wireRouting3D.disable();
+                            const toggle2DWireBtn = document.getElementById('toggle2DWireMode');
+                            if (toggle2DWireBtn) {
+                                toggle2DWireBtn.textContent = '📐 2D Wire Mode: OFF';
+                                toggle2DWireBtn.style.background = '#34495e';
+                            }
+                            const wire2DControls = document.getElementById('wire2DControls');
+                            if (wire2DControls) wire2DControls.style.display = 'none';
+                            console.log('⚠️ 2D Wire Mode disabled (3D view active)');
+                        }
+                        
                         viewer3D.switchTo3DView();
                         view3DBtn.classList.add('btn-success');
                         view3DBtn.classList.remove('btn-secondary');
                         view2DBtn.classList.remove('btn-success');
                         view2DBtn.classList.add('btn-secondary');
+                        console.log('✅ 3D Mode: Perspective camera with full rotation');
                     }
                 });
             }
@@ -1275,7 +1396,7 @@
                 gridSizeSlider.addEventListener('input', (e) => {
                     if (viewer3D) {
                         viewer3D.setGridSize(parseInt(e.target.value));
-                        gridSizeValue.textContent = e.target.value;
+                        gridSizeValue.textContent = e.target.value + 'mm';
                     }
                 });
             }
@@ -1415,36 +1536,289 @@
             }
         }
         
-        function setupWireSystem() {
-            const toggleWireModeBtn = document.getElementById('toggleWireMode');
-            const clearWiresBtn = document.getElementById('clearWires');
-            const exportWireListBtn = document.getElementById('exportWireList');
+        // Track if port visibility toggle is already set up
+        let portVisibilityInitialized = false;
+        
+        function setupPortVisibilityToggle() {
+            if (portVisibilityInitialized) return; // Already initialized
+            portVisibilityInitialized = true;
             
-            if (toggleWireModeBtn) {
-                toggleWireModeBtn.addEventListener('click', () => {
-                    if (viewer3D) {
-                        viewer3D.toggleWireMode();
-                        toggleWireModeBtn.textContent = viewer3D.wireMode ? '⚡ Wire Mode: ON' : '🔌 Wire Mode: OFF';
-                        toggleWireModeBtn.style.background = viewer3D.wireMode ? '#27ae60' : '#34495e';
+            const togglePortsBtn = document.getElementById('togglePortsVisibility');
+            
+            if (togglePortsBtn) {
+                togglePortsBtn.addEventListener('click', () => {
+                    if (viewer3D && viewer3D.portsManager) {
+                        // Toggle state
+                        const newState = !viewer3D.portsVisible;
+                        viewer3D.portsManager.togglePortsVisibility(viewer3D, newState);
+                        
+                        // Update button
+                        togglePortsBtn.textContent = newState ? '👁️ Show Ports: ON' : '🙈 Show Ports: OFF';
+                        togglePortsBtn.style.background = newState ? '#27ae60' : '#34495e';
+                    }
+                });
+            }
+        }
+        
+        // Track if wire system is already set up to prevent duplicate listeners
+        let wireSystemInitialized = false;
+        
+        // OLD WIRE SYSTEM - REMOVED (UI elements deleted)
+        // function setupWireSystem() {
+        //     ... old wire mode code removed ...
+        // }
+        
+        // Setup 2D Wire Routing controls
+        function setup2DWireRoutingControls() {
+            const toggle2DWireBtn = document.getElementById('toggle2DWireMode');
+            const wire2DControls = document.getElementById('wire2DControls');
+            
+                if (toggle2DWireBtn) {
+                toggle2DWireBtn.addEventListener('click', () => {
+                    if (!window.viewer3D || !window.viewer3D.wiring3DManager) {
+                        console.warn('3D Wire Manager not initialized yet');
+                        return;
+                    }
+                    
+                    const isEnabled = window.viewer3D.wireMode;
+                    
+                    if (isEnabled) {
+                        // Disable 3D wire mode
+                        window.viewer3D.wiring3DManager.disableWireMode(window.viewer3D);
+                        toggle2DWireBtn.textContent = '📐 2D Wire Mode: OFF';
+                        toggle2DWireBtn.style.background = '#34495e';
+                        if (wire2DControls) wire2DControls.style.display = 'none';
+                    } else {
+                        // Auto-activate 2D orthographic view for wire routing
+                        window.viewer3D.switchTo2DView();
+                        window.viewer3D.setView('top');
+                        console.log('✅ Auto-switched to 2D orthographic top view for wire routing');
+                        
+                        // Update view mode buttons
+                        const view2DBtn = document.getElementById('view2D');
+                        const view3DBtn = document.getElementById('view3D');
+                        if (view2DBtn && view3DBtn) {
+                            view2DBtn.classList.add('btn-success');
+                            view2DBtn.classList.remove('btn-secondary');
+                            view3DBtn.classList.remove('btn-success');
+                            view3DBtn.classList.add('btn-secondary');
+                        }
+                        
+                        // Enable 3D wire mode
+                        window.viewer3D.wiring3DManager.enableWireMode(window.viewer3D);
+                        toggle2DWireBtn.textContent = '✅ 2D Wire Mode: ON';
+                        toggle2DWireBtn.style.background = '#27ae60';
+                        if (wire2DControls) wire2DControls.style.display = 'block';
+                    }
+                });
+            }            // View switching buttons with active state
+            const viewButtons = {
+                'view-top': 'top',
+                'view-front': 'front',
+                'view-side': 'side-left'
+            };
+            
+            function updateViewButtons(activeView) {
+                Object.keys(viewButtons).forEach(btnId => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        if (viewButtons[btnId] === activeView) {
+                            btn.style.background = '#27ae60';
+                            btn.style.color = 'white';
+                        } else {
+                            btn.style.background = '';
+                            btn.style.color = '';
+                        }
                     }
                 });
             }
             
-            if (clearWiresBtn) {
-                clearWiresBtn.addEventListener('click', () => {
-                    if (viewer3D && confirm('Clear all wires?')) {
-                        viewer3D.clearAllWires();
+            document.getElementById('view-top')?.addEventListener('click', () => {
+                console.log('Top view button clicked');
+                // Switch to 2D orthographic mode
+                if (window.viewer3D) {
+                    if (!window.viewer3D.is2DMode) {
+                        window.viewer3D.switchTo2DView();
+                        // Update view mode button states
+                        const view2DBtn = document.getElementById('view2D');
+                        const view3DBtn = document.getElementById('view3D');
+                        if (view2DBtn && view3DBtn) {
+                            view2DBtn.classList.add('btn-success');
+                            view2DBtn.classList.remove('btn-secondary');
+                            view3DBtn.classList.remove('btn-success');
+                            view3DBtn.classList.add('btn-secondary');
+                        }
                     }
-                });
+                    window.viewer3D.setView('top');
+                }
+                // Change 2D wire routing projection
+                if (window.wireRouting3D) {
+                    window.wireRouting3D.setView('top');
+                }
+                updateViewButtons('top');
+            });
+            
+            document.getElementById('view-front')?.addEventListener('click', () => {
+                console.log('Front view button clicked');
+                // Switch to 2D orthographic mode
+                if (window.viewer3D) {
+                    if (!window.viewer3D.is2DMode) {
+                        window.viewer3D.switchTo2DView();
+                        // Update view mode button states
+                        const view2DBtn = document.getElementById('view2D');
+                        const view3DBtn = document.getElementById('view3D');
+                        if (view2DBtn && view3DBtn) {
+                            view2DBtn.classList.add('btn-success');
+                            view2DBtn.classList.remove('btn-secondary');
+                            view3DBtn.classList.remove('btn-success');
+                            view3DBtn.classList.add('btn-secondary');
+                        }
+                    }
+                    window.viewer3D.setView('front');
+                }
+                // Change 2D wire routing projection
+                if (window.wireRouting3D) {
+                    window.wireRouting3D.setView('front');
+                }
+                updateViewButtons('front');
+            });
+            
+            document.getElementById('view-side')?.addEventListener('click', () => {
+                console.log('Side view button clicked');
+                // Switch to 2D orthographic mode
+                if (window.viewer3D) {
+                    if (!window.viewer3D.is2DMode) {
+                        window.viewer3D.switchTo2DView();
+                        // Update view mode button states
+                        const view2DBtn = document.getElementById('view2D');
+                        const view3DBtn = document.getElementById('view3D');
+                        if (view2DBtn && view3DBtn) {
+                            view2DBtn.classList.add('btn-success');
+                            view2DBtn.classList.remove('btn-secondary');
+                            view3DBtn.classList.remove('btn-success');
+                            view3DBtn.classList.add('btn-secondary');
+                        }
+                    }
+                    window.viewer3D.setView('left');
+                }
+                // Change 2D wire routing projection
+                if (window.wireRouting3D) {
+                    window.wireRouting3D.setView('side-left');
+                }
+                updateViewButtons('side-left');
+            });
+            
+            // Set default active view
+            updateViewButtons('top');
+            
+            // Initialize toggle button states
+            const gridBtn = document.getElementById('toggle-wire-grid');
+            const portsBtn = document.getElementById('toggle-wire-ports');
+            if (gridBtn) {
+                gridBtn.textContent = '⊞ Grid ON';
+                gridBtn.style.background = '#27ae60';
+            }
+            if (portsBtn) {
+                portsBtn.textContent = '📍 Ports ON';
+                portsBtn.style.background = '#27ae60';
             }
             
-            if (exportWireListBtn) {
-                exportWireListBtn.addEventListener('click', () => {
-                    if (viewer3D) {
-                        viewer3D.exportWireList();
+            // Handle window resize to keep canvas sized correctly
+            window.addEventListener('resize', () => {
+                if (window.wireRouting3D && window.wireRouting3D.enabled) {
+                    const canvas = document.getElementById('wire-routing-overlay');
+                    const container = document.getElementById('model-viewer-container');
+                    if (canvas && container) {
+                        canvas.width = container.clientWidth;
+                        canvas.height = container.clientHeight;
                     }
+                }
+            });
+            
+            // Port radius selector - affects BOTH 2D canvas display AND 3D sphere size
+            document.getElementById('wire-port-radius')?.addEventListener('change', (e) => {
+                const pixelValue = parseInt(e.target.value);
+                
+                // Update 2D canvas port display radius
+                window.wireRouting3D?.setPortRadius(pixelValue);
+                
+                // Update 3D port sphere size (map pixel values to scale multipliers)
+                if (window.viewer3D) {
+                    // Map: 4px=0.5x, 6px=1.0x, 8px=1.5x, 10px=2.0x
+                    const scaleMap = {
+                        4: 0.67,
+                        6: 1.0,
+                        8: 1.33,
+                        10: 1.67
+                    };
+                    const scale = scaleMap[pixelValue] || 1.0;
+                    window.viewer3D.setPortVisualScale(scale);
+                }
+            });
+            
+            // Toggle buttons with visual feedback
+            document.getElementById('toggle-wire-ports')?.addEventListener('click', (e) => {
+                window.wireRouting3D?.togglePorts();
+                const btn = e.target;
+                const isOn = window.wireRouting3D?.showPorts;
+                btn.textContent = isOn ? '📍 Ports ON' : '📍 Ports OFF';
+                btn.style.background = isOn ? '#27ae60' : '#34495e';
+            });
+            
+            document.getElementById('reset-wire-view')?.addEventListener('click', () => {
+                window.wireRouting3D?.resetView();
+            });
+            
+            // Check status button
+            document.getElementById('check-wire-status')?.addEventListener('click', () => {
+                if (!window.wireRouting3D) {
+                    alert('❌ Wire routing system not initialized!\n\nPlease switch to 3D Models view first.');
+                    return;
+                }
+                
+                const portCount = window.wireRouting3D.portsManager ? 
+                    window.wireRouting3D.portsManager.getAllPortsWithWorldPositions().length : 0;
+                const wireCount = window.wireRouting3D.wireRouter ? 
+                    window.wireRouting3D.wireRouter.wires.length : 0;
+                
+                let message = '🔍 Wire Routing System Status:\n\n';
+                message += `✅ System: ${window.wireRouting3D.enabled ? 'ENABLED' : 'DISABLED'}\n`;
+                message += `📍 Ports: ${portCount} available\n`;
+                message += `🔌 Wires: ${wireCount} created\n`;
+                message += `👁️ Show Ports: ${window.wireRouting3D.showPorts ? 'ON' : 'OFF'}\n`;
+                message += `⊞ Show Grid: ${window.wireRouting3D.showGrid ? 'ON' : 'OFF'}\n`;
+                message += `📐 View: ${window.wireRouting3D.viewManager.currentView}\n`;
+                message += `🎨 Canvas: ${window.wireRouting3D.canvas.width}x${window.wireRouting3D.canvas.height}\n`;
+                message += `📏 Scale: ${window.wireRouting3D.scale.toFixed(2)}\n\n`;
+                
+                if (portCount === 0) {
+                    message += '⚠️ NO PORTS FOUND!\n\n';
+                    message += 'To add ports:\n';
+                    message += '1. Load a model\n';
+                    message += '2. Enable "Edit Ports Mode"\n';
+                    message += '3. Click on model to add ports\n';
+                } else {
+                    message += '✅ Ready to wire!\n';
+                    message += 'Click on ports to start routing.';
+                }
+                
+                alert(message);
+                console.log('📊 System Status:', {
+                    enabled: window.wireRouting3D.enabled,
+                    ports: portCount,
+                    wires: wireCount,
+                    showPorts: window.wireRouting3D.showPorts,
+                    showGrid: window.wireRouting3D.showGrid,
+                    view: window.wireRouting3D.viewManager.currentView
                 });
-            }
+            });
+            
+            // Clear all wires
+            document.getElementById('clear-all-2d-wires')?.addEventListener('click', () => {
+                if (window.viewer3D && window.viewer3D.wiring3DManager && confirm('Clear all wires?')) {
+                    window.viewer3D.wiring3DManager.clearAllWires(window.viewer3D);
+                }
+            });
         }
         
         // Initialize 3D viewer when needed
@@ -1454,7 +1828,9 @@
                 init3DViewer();
                 loadModelButtons();
                 setupCustomModelUpload();
-                setupWireSystem();
+                setupPortVisibilityToggle();
+                // setupWireSystem(); // OLD SYSTEM REMOVED
+                setup2DWireRoutingControls(); // New 2D wire routing controls
             };
         });
         

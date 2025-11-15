@@ -76,10 +76,12 @@ class ModelSceneManager {
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.05;
         
-        // Start locked in 2D top-view mode
-        orbitControls.enableRotate = false;
-        orbitControls.maxPolarAngle = 0;
-        orbitControls.minPolarAngle = 0;
+        // Start in 2D orthographic mode with rotation ENABLED
+        // This allows view plane switching (Top/Front/Side) to work immediately
+        orbitControls.enableRotate = true;
+        // Remove polar angle constraints - allow full rotation
+        // orbitControls.maxPolarAngle = Math.PI; // No limit
+        // orbitControls.minPolarAngle = 0; // No limit
         
         // Transform controls for object manipulation
         const transformControls = new THREE.TransformControls(camera, renderer.domElement);
@@ -185,6 +187,9 @@ class ModelSceneManager {
         const { width, height, depth } = sceneInstance.mountingConfig;
         const distance = Math.max(width, height, depth) * 1.5;
         
+        // Store current view for wire routing plane detection
+        sceneInstance.currentView = viewName;
+        
         // Store target for smooth transition
         const targetPos = { x: 0, y: 0, z: 0 };
         const targetLookAt = { x: 0, y: height / 2, z: 0 };
@@ -278,7 +283,7 @@ class ModelSceneManager {
         const { width, depth } = sceneInstance.mountingConfig;
         const distance = Math.max(width, depth) * 2;
         
-        // Position orthographic camera directly above
+        // Position orthographic camera directly above (top view by default)
         sceneInstance.orthographicCamera.position.set(0, distance, 0);
         sceneInstance.orthographicCamera.lookAt(0, 0, 0);
         sceneInstance.orthographicCamera.updateProjectionMatrix();
@@ -286,7 +291,10 @@ class ModelSceneManager {
         // Update orbit controls to use orthographic camera
         sceneInstance.orbitControls.object = sceneInstance.orthographicCamera;
         sceneInstance.orbitControls.target.set(0, 0, 0);
+        // DISABLE ROTATION in 2D mode - user must choose view via buttons (Top/Front/Side)
         sceneInstance.orbitControls.enableRotate = false;
+        sceneInstance.orbitControls.enablePan = true;  // Allow panning
+        sceneInstance.orbitControls.enableZoom = true; // Allow zooming
         sceneInstance.orbitControls.update();
         
         sceneInstance.log('📐 Switched to 2D Top View - Objects can be moved', 'info');
@@ -296,6 +304,11 @@ class ModelSceneManager {
         sceneInstance.is2DMode = false;
         sceneInstance.viewMode = '3d';
         sceneInstance.interactionEnabled = false; // Disable selection and movement in 3D (view-only)
+        
+        // Disable wire mode if it's active (wire routing only works in 2D orthographic views)
+        if (sceneInstance.wireMode && sceneInstance.wiring3DManager) {
+            sceneInstance.wiring3DManager.disableWireMode(sceneInstance);
+        }
         
         // Disable transform controls and deselect any object
         if (sceneInstance.transformControls) {
@@ -330,6 +343,25 @@ class ModelSceneManager {
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
+        // Mouse move handler for wire preview
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            if (!sceneInstance.wireMode || !sceneInstance.wiring3DManager.currentWire) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Raycast against mounting surfaces for preview
+            const mountingIntersects = raycaster.intersectObjects(sceneInstance.mountingSurfaces || [], true);
+            if (mountingIntersects.length > 0) {
+                const worldPos = mountingIntersects[0].point;
+                sceneInstance.wiring3DManager.updatePreviewLine(sceneInstance, worldPos);
+            }
+        });
+        
+        // Mouse click handler
         renderer.domElement.addEventListener('click', (event) => {
             // Disable interaction in 3D view mode (view-only) unless in wire/ruler mode
             if (sceneInstance.viewMode === '3d' && !sceneInstance.rulerMode && !sceneInstance.wireMode) return;
@@ -348,13 +380,55 @@ class ModelSceneManager {
                 return;
             }
             
-            // Wire mode: Check for port marker clicks first
+            // Wire mode: Check for blue hanging marker clicks first
             if (sceneInstance.wireMode) {
-                const portIntersects = raycaster.intersectObjects(sceneInstance.portMarkers, false);
+                // Check if clicked on blue hanging wire marker
+                const allObjects = [];
+                sceneInstance.scene.traverse(obj => {
+                    if (obj.userData.isHangingWireEnd) {
+                        allObjects.push(obj);
+                    }
+                });
+                
+                const hangingMarkerIntersects = raycaster.intersectObjects(allObjects, false);
+                if (hangingMarkerIntersects.length > 0) {
+                    const marker = hangingMarkerIntersects[0].object;
+                    sceneInstance.wiring3DManager.continueFromHangingWire(sceneInstance, marker);
+                    return;
+                }
+                
+                // Check for port marker clicks
+                const portIntersects = raycaster.intersectObjects(sceneInstance.portMarkers, true);
                 if (portIntersects.length > 0) {
-                    const portMarker = portIntersects[0].object;
-                    const port = portMarker.userData.port;
-                    sceneInstance.handlePortClickForWiring(port, portMarker);
+                    const clicked = portIntersects[0].object;
+                    
+                    // Find the port group (either clicked object or its parent)
+                    let portGroup = clicked.userData.isPortGroup ? clicked : 
+                                   (clicked.parent?.userData?.isPortGroup ? clicked.parent : null);
+                    
+                    if (portGroup) {
+                        const portData = portGroup.userData.portData;
+                        portData.sphereMesh = portGroup.userData.sphereMesh; // Add sphere reference
+                        
+                        // Use new 3D wire manager
+                        if (sceneInstance.wiring3DManager.currentWire) {
+                            // Complete wire at this port
+                            sceneInstance.wiring3DManager.completeWire(sceneInstance, portData);
+                        } else {
+                            // Start new wire from this port
+                            sceneInstance.wiring3DManager.startWire(sceneInstance, portData);
+                        }
+                        return;
+                    }
+                }
+                
+                // If routing a wire and clicked empty space, add waypoint (change direction)
+                if (sceneInstance.wiring3DManager.currentWire) {
+                    const mountingIntersects = raycaster.intersectObjects(sceneInstance.mountingSurfaces || [], true);
+                    if (mountingIntersects.length > 0) {
+                        // Add waypoint at click position
+                        sceneInstance.wiring3DManager.addWaypoint(sceneInstance);
+                    }
                     return;
                 }
             }

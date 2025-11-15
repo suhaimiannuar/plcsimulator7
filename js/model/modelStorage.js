@@ -52,7 +52,7 @@ class ModelStorageManager {
         
         // Save wires
         sceneInstance.wires.forEach(wire => {
-            layout.wires.push({
+            const wireData = {
                 id: wire.id,
                 portA: {
                     label: wire.portA.label,
@@ -65,8 +65,21 @@ class ModelStorageManager {
                     worldPosition: wire.portB.worldPosition
                 },
                 wireType: wire.wireType,
-                wireGauge: wire.wireGauge
-            });
+                wireGauge: wire.wireGauge,
+                length: wire.length
+            };
+            
+            // Include waypoints if present
+            if (wire.hasWaypoints && wire.curvePoints) {
+                wireData.hasWaypoints = true;
+                wireData.waypoints = wire.curvePoints.map(p => ({
+                    x: p.x,
+                    y: p.y,
+                    z: p.z
+                }));
+            }
+            
+            layout.wires.push(wireData);
         });
         
         // Create download link
@@ -186,7 +199,30 @@ class ModelStorageManager {
                             });
                             
                             if (portA && portB) {
-                                sceneInstance.createWire(portA, portB, wireData.wireType, wireData.wireGauge);
+                                // Check if wire has waypoints
+                                if (wireData.hasWaypoints && wireData.waypoints) {
+                                    // Restore waypoint wire
+                                    const waypoints = wireData.waypoints.map(p => 
+                                        new THREE.Vector3(p.x, p.y, p.z)
+                                    );
+                                    sceneInstance.wiringManager.createWireWithWaypoints(
+                                        sceneInstance, 
+                                        portA, 
+                                        portB, 
+                                        waypoints,
+                                        wireData.wireType, 
+                                        wireData.wireGauge
+                                    );
+                                } else {
+                                    // Restore auto-routed wire
+                                    sceneInstance.wiringManager.createWire(
+                                        sceneInstance,
+                                        portA, 
+                                        portB, 
+                                        wireData.wireType, 
+                                        wireData.wireGauge
+                                    );
+                                }
                             } else {
                                 sceneInstance.log(`Could not restore wire: ${wireData.portA.label} → ${wireData.portB.label}`, 'warning');
                             }
