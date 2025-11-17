@@ -9,6 +9,9 @@ function handleKeyboardShortcuts(e) {
     // Don't trigger shortcuts when typing in input fields
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     
+    // Don't trigger ladder shortcuts when in 3D wire mode
+    if (window.viewer3D && window.viewer3D.wireMode) return;
+    
     // Copy: Cmd/Ctrl + C
     if (modifier && e.key === 'c') {
         e.preventDefault();

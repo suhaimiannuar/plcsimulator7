@@ -688,6 +688,32 @@
                                 <p style="font-size: 10px; color: #888; margin: 5px 0;">
                                     💡 Grid controlled by View Controls panel
                                 </p>
+                                
+                                <!-- Auto-Connect Settings -->
+                                <div style="border-top: 1px solid #444; padding-top: 10px; margin: 10px 0;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                        <label style="font-size: 11px; color: #888; font-weight: bold;">🔗 Auto-Connect</label>
+                                        <label class="switch" style="margin: 0;">
+                                            <input type="checkbox" id="wire-auto-connect-enabled" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div id="auto-connect-distance-container">
+                                        <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">
+                                            Snap Distance: <span id="auto-connect-distance-value">50</span>mm
+                                        </label>
+                                        <input type="range" id="wire-auto-connect-distance" min="5" max="100" value="50" step="5" 
+                                               style="width: 100%; margin-bottom: 5px;">
+                                        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #666;">
+                                            <span>5mm</span>
+                                            <span>100mm</span>
+                                        </div>
+                                        <p style="font-size: 9px; color: #666; margin: 5px 0 0 0;">
+                                            Wire preview turns yellow when near a port
+                                        </p>
+                                    </div>
+                                </div>
+                                
                                 <button id="check-wire-status" class="btn btn-info btn-small" style="width: 100%; font-size: 11px; margin-bottom: 10px;">
                                     🔍 Check Status
                                 </button>
@@ -1119,7 +1145,12 @@
             createWire(portA, portB, wireType, wireGauge) { this.wiringManager.createWire(this, portA, portB, wireType, wireGauge); }
             updateWiresList() { this.wiringManager.updateWiresList(this); }
             deleteWire(wireId) { this.wiringManager.deleteWire(this, wireId); }
-            clearAllWires() { this.wiringManager.clearAllWires(this); }
+            clearAllWires() { 
+                this.wiringManager.clearAllWires(this); 
+                if (this.wiring3DManager) {
+                    this.wiring3DManager.clearAllWires(this);
+                }
+            }
             exportWireList() { this.wiringManager.exportWireList(this); }
             
             // Tools delegates
@@ -1196,7 +1227,10 @@
         
         function setupWireKeyboardShortcuts() {
             document.addEventListener('keydown', (e) => {
-                if (!window.viewer3D || !window.viewer3D.wireMode) return;
+                // Check wire mode status
+                if (!window.viewer3D || !window.viewer3D.wireMode) {
+                    return;
+                }
                 
                 if (e.key === 'Escape') {
                     // Cancel current wire
@@ -1210,6 +1244,31 @@
                     e.preventDefault(); // Prevent page scroll
                     if (window.viewer3D.wiring3DManager.currentWire) {
                         window.viewer3D.wiring3DManager.hangWire(window.viewer3D);
+                    }
+                }
+                
+                // Handle Ctrl+Z for undo (Mac uses Cmd+Z, which is metaKey)
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                    e.preventDefault();
+                    console.log('🔄 Undo shortcut detected');
+                    if (window.viewer3D.wiring3DManager) {
+                        const success = window.viewer3D.wiring3DManager.undo(window.viewer3D);
+                        if (!success) {
+                            console.log('⚠️ Undo failed - check history');
+                        }
+                    }
+                }
+                
+                // Handle Ctrl+Y for redo (also support Ctrl+Shift+Z)
+                if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+                    ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+                    e.preventDefault();
+                    console.log('🔄 Redo shortcut detected');
+                    if (window.viewer3D.wiring3DManager) {
+                        const success = window.viewer3D.wiring3DManager.redo(window.viewer3D);
+                        if (!success) {
+                            console.log('⚠️ Redo failed - check history');
+                        }
                     }
                 }
             });
@@ -1817,6 +1876,30 @@
             document.getElementById('clear-all-2d-wires')?.addEventListener('click', () => {
                 if (window.viewer3D && window.viewer3D.wiring3DManager && confirm('Clear all wires?')) {
                     window.viewer3D.wiring3DManager.clearAllWires(window.viewer3D);
+                }
+            });
+            
+            // Auto-connect settings
+            document.getElementById('wire-auto-connect-enabled')?.addEventListener('change', (e) => {
+                if (window.viewer3D && window.viewer3D.wiring3DManager) {
+                    window.viewer3D.wiring3DManager.autoConnectEnabled = e.target.checked;
+                    console.log('🔗 Auto-connect:', e.target.checked ? 'ENABLED' : 'DISABLED');
+                    
+                    // Show/hide distance slider
+                    const container = document.getElementById('auto-connect-distance-container');
+                    if (container) {
+                        container.style.display = e.target.checked ? 'block' : 'none';
+                    }
+                }
+            });
+            
+            document.getElementById('wire-auto-connect-distance')?.addEventListener('input', (e) => {
+                const distance = parseInt(e.target.value);
+                document.getElementById('auto-connect-distance-value').textContent = distance;
+                
+                if (window.viewer3D && window.viewer3D.wiring3DManager) {
+                    window.viewer3D.wiring3DManager.autoConnectDistance = distance;
+                    console.log(`🔗 Auto-connect distance: ${distance}mm`);
                 }
             });
         }

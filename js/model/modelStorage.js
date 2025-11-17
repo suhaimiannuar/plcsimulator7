@@ -21,8 +21,10 @@ class ModelStorageManager {
         
         // Save each object's position, rotation, and model info
         sceneInstance.sceneObjects.forEach(obj => {
+            const modelName = obj.userData.name || obj.userData.modelName || 'Unnamed';
+            
             const objData = {
-                name: obj.userData.name || 'Unnamed',
+                name: modelName,
                 modelName: obj.userData.modelName,
                 format: obj.userData.format,
                 position: {
@@ -39,48 +41,81 @@ class ModelStorageManager {
                     x: obj.scale.x,
                     y: obj.scale.y,
                     z: obj.scale.z
-                }
+                },
+                ports: []  // Initialize empty ports array
             };
             
-            // Save port configuration if exists
-            if (sceneInstance.modelPorts.has(obj.userData.name)) {
-                objData.ports = sceneInstance.modelPorts.get(obj.userData.name);
+            // Save port configuration if exists - try multiple possible keys
+            const portKeys = [modelName, obj.userData.name, obj.userData.modelName];
+            for (const key of portKeys) {
+                if (key && sceneInstance.modelPorts.has(key)) {
+                    objData.ports = sceneInstance.modelPorts.get(key);
+                    console.log(`Found ports for ${key}:`, objData.ports.length);
+                    break;
+                }
             }
             
+            console.log(`Saving object: ${modelName}, ports: ${objData.ports.length}`);
             layout.objects.push(objData);
         });
         
-        // Save wires
-        sceneInstance.wires.forEach(wire => {
-            const wireData = {
-                id: wire.id,
-                portA: {
-                    label: wire.portA.label,
-                    localPosition: wire.portA.localPosition,
-                    worldPosition: wire.portA.worldPosition
-                },
-                portB: {
-                    label: wire.portB.label,
-                    localPosition: wire.portB.localPosition,
-                    worldPosition: wire.portB.worldPosition
-                },
-                wireType: wire.wireType,
-                wireGauge: wire.wireGauge,
-                length: wire.length
-            };
+        // Save wires from wiring3DManager
+        if (sceneInstance.wiring3DManager && sceneInstance.wiring3DManager.wires) {
+            console.log('Saving wires:', sceneInstance.wiring3DManager.wires.length);
             
-            // Include waypoints if present
-            if (wire.hasWaypoints && wire.curvePoints) {
-                wireData.hasWaypoints = true;
-                wireData.waypoints = wire.curvePoints.map(p => ({
-                    x: p.x,
-                    y: p.y,
-                    z: p.z
-                }));
-            }
-            
-            layout.wires.push(wireData);
-        });
+            sceneInstance.wiring3DManager.wires.forEach(wire => {
+                const wireData = {
+                    id: wire.id,
+                    wireType: wire.wireType,
+                    wireGauge: wire.wireGauge || 5,
+                    isHanging: wire.isHanging || false,
+                    waypoints: wire.waypoints.map(wp => ({
+                        x: wp.x,
+                        y: wp.y,
+                        z: wp.z
+                    }))
+                };
+                
+                // Save start port reference
+                if (wire.startPort) {
+                    wireData.startPort = {
+                        portId: wire.startPort.portId,
+                        label: wire.startPort.label,
+                        worldPosition: {
+                            x: wire.startPort.worldPosition.x,
+                            y: wire.startPort.worldPosition.y,
+                            z: wire.startPort.worldPosition.z
+                        }
+                    };
+                }
+                
+                // Save end port reference (if not hanging)
+                if (wire.endPort) {
+                    wireData.endPort = {
+                        portId: wire.endPort.portId,
+                        label: wire.endPort.label,
+                        worldPosition: {
+                            x: wire.endPort.worldPosition.x,
+                            y: wire.endPort.worldPosition.y,
+                            z: wire.endPort.worldPosition.z
+                        }
+                    };
+                }
+                
+                // Save hanging marker position if exists
+                if (wire.isHanging && wire.hangingMarker) {
+                    wireData.hangingMarkerPosition = {
+                        x: wire.hangingMarker.position.x,
+                        y: wire.hangingMarker.position.y,
+                        z: wire.hangingMarker.position.z
+                    };
+                }
+                
+                layout.wires.push(wireData);
+            });
+        } else {
+            console.log('No wiring3DManager or no wires to save');
+        }
         
         // Create download link
         const json = JSON.stringify(layout, null, 2);
@@ -110,8 +145,18 @@ class ModelStorageManager {
                 const text = await file.text();
                 const layout = JSON.parse(text);
                 
+                console.log('Loaded layout:', layout);
+                console.log('Layout has objects:', layout.objects);
+                console.log('Layout has wires:', layout.wires);
+                
                 if (!layout.version || !layout.objects) {
                     throw new Error('Invalid layout file format');
+                }
+                
+                // Verify required managers exist
+                if (!sceneInstance.modelPorts) {
+                    console.warn('modelPorts Map not initialized, creating it');
+                    sceneInstance.modelPorts = new Map();
                 }
                 
                 // Clear current scene
@@ -165,76 +210,143 @@ class ModelStorageManager {
                             );
                             
                             // Restore ports if exists
-                            if (objData.ports) {
+                            if (objData.ports && Array.isArray(objData.ports) && objData.ports.length > 0) {
+                                console.log(`Restoring ${objData.ports.length} ports for ${objData.name}`);
                                 sceneInstance.modelPorts.set(objData.name, objData.ports);
+                                
+                                // Recreate port markers for each port
+                                if (sceneInstance.modelPortsManager) {
+                                    objData.ports.forEach(portData => {
+                                        sceneInstance.modelPortsManager.createPortMarker(
+                                            sceneInstance, 
+                                            loadedObject, 
+                                            portData
+                                        );
+                                    });
+                                } else {
+                                    console.error('modelPortsManager not available');
+                                }
+                            } else {
+                                console.log(`No ports to restore for ${objData.name}`);
                             }
                             
-                            sceneInstance.log(`Loaded: ${objData.name}`, 'success');
+                            sceneInstance.log(`Loaded: ${objData.name} with ${objData.ports?.length || 0} ports`, 'success');
                         }
                     } catch (err) {
+                        console.error('Error loading object:', err);
+                        console.error('Stack trace:', err.stack);
                         sceneInstance.log(`Failed to load ${objData.modelName}: ${err.message}`, 'error');
                     }
                 }
                 
                 // Restore wires if present
-                if (layout.wires && layout.wires.length > 0) {
+                if (layout.wires && layout.wires.length > 0 && sceneInstance.wiring3DManager) {
                     sceneInstance.log(`Restoring ${layout.wires.length} wires...`, 'info');
+                    console.log('Available ports:', sceneInstance.modelPorts);
                     
-                    // Small delay to ensure all ports are created
+                    // Small delay to ensure all ports are created and positioned
                     setTimeout(() => {
+                        if (!sceneInstance.modelPorts || sceneInstance.modelPorts.size === 0) {
+                            console.warn('No ports available to restore wires');
+                            sceneInstance.log('⚠️ No ports found - wires cannot be restored', 'warning');
+                            return;
+                        }
+                        
                         layout.wires.forEach(wireData => {
-                            // Find ports by matching label and position
-                            let portA = null;
-                            let portB = null;
-                            
-                            sceneInstance.modelPorts.forEach((ports, modelName) => {
-                                ports.forEach(port => {
-                                    if (port.label === wireData.portA.label) {
-                                        portA = port;
+                            try {
+                                // Find ports by matching portId
+                                let startPort = null;
+                                let endPort = null;
+                                
+                                console.log(`Looking for ports: ${wireData.startPort?.portId} → ${wireData.endPort?.portId}`);
+                                
+                                // Search all model ports for matching portIds
+                                sceneInstance.modelPorts.forEach((ports, modelName) => {
+                                    if (!ports || !Array.isArray(ports)) {
+                                        console.warn(`Invalid ports for model ${modelName}:`, ports);
+                                        return;
                                     }
-                                    if (port.label === wireData.portB.label) {
-                                        portB = port;
-                                    }
+                                    
+                                    ports.forEach(port => {
+                                        if (wireData.startPort && port.portId === wireData.startPort.portId) {
+                                            startPort = port;
+                                            console.log(`Found start port: ${port.portId}`);
+                                        }
+                                        if (wireData.endPort && port.portId === wireData.endPort.portId) {
+                                            endPort = port;
+                                            console.log(`Found end port: ${port.portId}`);
+                                        }
+                                    });
                                 });
-                            });
-                            
-                            if (portA && portB) {
-                                // Check if wire has waypoints
-                                if (wireData.hasWaypoints && wireData.waypoints) {
-                                    // Restore waypoint wire
-                                    const waypoints = wireData.waypoints.map(p => 
-                                        new THREE.Vector3(p.x, p.y, p.z)
+                                
+                                if (!startPort) {
+                                    console.warn(`Could not find start port: ${wireData.startPort?.label}`);
+                                    return;
+                                }
+                                
+                                // Recreate the wire with saved waypoints
+                                const wire = {
+                                    id: wireData.id,
+                                    startPort: startPort,
+                                    endPort: endPort,  // null if hanging
+                                    waypoints: wireData.waypoints.map(wp => 
+                                        new THREE.Vector3(wp.x, wp.y, wp.z)
+                                    ),
+                                    wireType: wireData.wireType,
+                                    wireGauge: wireData.wireGauge || 5,
+                                    isHanging: wireData.isHanging || false
+                                };
+                                
+                                // Create the wire mesh
+                                sceneInstance.wiring3DManager.createWireLine(sceneInstance, wire);
+                                
+                                // If hanging, create the blue marker
+                                if (wire.isHanging && wireData.hangingMarkerPosition) {
+                                    const markerPos = new THREE.Vector3(
+                                        wireData.hangingMarkerPosition.x,
+                                        wireData.hangingMarkerPosition.y,
+                                        wireData.hangingMarkerPosition.z
                                     );
-                                    sceneInstance.wiringManager.createWireWithWaypoints(
+                                    sceneInstance.wiring3DManager.createHangingEndMarker(
                                         sceneInstance, 
-                                        portA, 
-                                        portB, 
-                                        waypoints,
-                                        wireData.wireType, 
-                                        wireData.wireGauge
-                                    );
-                                } else {
-                                    // Restore auto-routed wire
-                                    sceneInstance.wiringManager.createWire(
-                                        sceneInstance,
-                                        portA, 
-                                        portB, 
-                                        wireData.wireType, 
-                                        wireData.wireGauge
+                                        wire, 
+                                        markerPos
                                     );
                                 }
-                            } else {
-                                sceneInstance.log(`Could not restore wire: ${wireData.portA.label} → ${wireData.portB.label}`, 'warning');
+                                
+                                // Add to wires array
+                                sceneInstance.wiring3DManager.wires.push(wire);
+                                
+                                console.log(`✅ Restored wire: ${wireData.id} (${wireData.wireType}, gauge ${wireData.wireGauge})`);
+                                
+                            } catch (err) {
+                                console.error(`Failed to restore wire ${wireData.id}:`, err);
+                                sceneInstance.log(`Could not restore wire: ${wireData.id}`, 'warning');
                             }
                         });
-                    }, 500);
+                        
+                        // Update wire ID counter to avoid conflicts with loaded wire IDs
+                        if (sceneInstance.wiring3DManager.wires.length > 0) {
+                            const maxId = Math.max(...sceneInstance.wiring3DManager.wires.map(w => {
+                                const match = w.id.match(/wire-(\d+)/);
+                                return match ? parseInt(match[1]) : 0;
+                            }));
+                            sceneInstance.wiring3DManager.wireIdCounter = maxId + 1;
+                            console.log(`Wire ID counter updated to: ${sceneInstance.wiring3DManager.wireIdCounter}`);
+                        }
+                        
+                        sceneInstance.log(`✅ Restored ${layout.wires.length} wires`, 'success');
+                    }, 1000);  // Increased delay to ensure ports are ready
                 }
                 
                 sceneInstance.log('Layout loaded successfully!', 'success');
                 
             } catch (error) {
+                console.error('Full error loading layout:', error);
+                console.error('Error stack:', error.stack);
+                console.error('Error at line:', error.lineNumber || error.line);
                 sceneInstance.log(`Error loading layout: ${error.message}`, 'error');
-                alert(`Error loading layout: ${error.message}`);
+                alert(`Error loading layout: ${error.message}\n\nCheck console for details.`);
             }
         };
         

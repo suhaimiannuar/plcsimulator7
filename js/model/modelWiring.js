@@ -572,15 +572,24 @@ class ModelWiringManager {
     }
     
     clearAllWires(sceneInstance) {
+        // Check if wires array exists (2D wiring system)
+        if (!sceneInstance.wires || !Array.isArray(sceneInstance.wires)) {
+            console.log('No 2D wires to clear (using 3D wiring system)');
+            sceneInstance.wires = [];
+            return;
+        }
+        
         sceneInstance.wires.forEach(wire => {
-            sceneInstance.scene.remove(wire.mesh);
-            wire.mesh.geometry.dispose();
-            wire.mesh.material.dispose();
+            if (wire.mesh) {
+                sceneInstance.scene.remove(wire.mesh);
+                wire.mesh.geometry.dispose();
+                wire.mesh.material.dispose();
+            }
         });
         
         sceneInstance.wires = [];
         this.updateWiresList(sceneInstance);
-        sceneInstance.log('All wires cleared', 'info');
+        sceneInstance.log('All 2D wires cleared', 'info');
     }
     
     exportWireList(sceneInstance) {

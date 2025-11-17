@@ -51,12 +51,20 @@ class ModelPortsManager {
             sceneInstance.modelPorts.set(modelName, []);
         }
         
+        // Generate unique portId
+        const portCount = sceneInstance.modelPorts.get(modelName).length;
+        const instanceId = modelObj.userData.instanceId || modelName.replace(/\s+/g, '_');
+        const portId = `${instanceId}_${label}_${portCount}`;
+        
         const port = {
             label: label,
             type: type,
             size: size,
             localPosition: { x: localPosition.x, y: localPosition.y, z: localPosition.z },
-            worldPosition: { x: worldPosition.x, y: worldPosition.y, z: worldPosition.z }
+            worldPosition: { x: worldPosition.x, y: worldPosition.y, z: worldPosition.z },
+            portId: portId,
+            modelName: modelName,
+            instanceId: instanceId
         };
         
         sceneInstance.modelPorts.get(modelName).push(port);
@@ -112,12 +120,32 @@ class ModelPortsManager {
         marker.userData.isPortMarker = true;
         marker.userData.portLabel = port.label;
         marker.userData.port = port;
+        marker.userData.portId = port.portId;
+        
+        // Create invisible sphere for wire snapping/connection (used by wiring system)
+        const sphereGeometry = new THREE.SphereGeometry(port.size * 0.5, 8, 8);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, 
+            transparent: true, 
+            opacity: 0 // Invisible
+        });
+        const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphereMesh.position.set(port.worldPosition.x, port.worldPosition.y, port.worldPosition.z);
+        sphereMesh.userData.isPortSphere = true;
+        sphereMesh.userData.portLabel = port.label;
+        sphereMesh.userData.portId = port.portId;
+        sphereMesh.userData.port = port;
+        
+        // Store reference to sphere mesh in port object (needed for wiring)
+        port.sphereMesh = sphereMesh;
         
         // Add text label
         this.addPortLabel(marker, port.label);
         
         sceneInstance.scene.add(marker);
+        sceneInstance.scene.add(sphereMesh);
         sceneInstance.portMarkers.push(marker);
+        sceneInstance.portMarkers.push(sphereMesh);  // Add sphere to markers too for cleanup
     }
     
     addPortLabel(marker, text) {

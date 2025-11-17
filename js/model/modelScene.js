@@ -343,7 +343,7 @@ class ModelSceneManager {
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
-        // Mouse move handler for wire preview
+        // Mouse move handler for wire preview and auto-connect
         renderer.domElement.addEventListener('mousemove', (event) => {
             if (!sceneInstance.wireMode || !sceneInstance.wiring3DManager.currentWire) return;
             
@@ -357,7 +357,17 @@ class ModelSceneManager {
             const mountingIntersects = raycaster.intersectObjects(sceneInstance.mountingSurfaces || [], true);
             if (mountingIntersects.length > 0) {
                 const worldPos = mountingIntersects[0].point;
-                sceneInstance.wiring3DManager.updatePreviewLine(sceneInstance, worldPos);
+                
+                // Check for nearby ports for auto-connect
+                const nearbyPort = sceneInstance.wiring3DManager.findNearbyPort(sceneInstance, worldPos);
+                
+                if (nearbyPort) {
+                    // Show preview snapping to nearby port
+                    sceneInstance.wiring3DManager.updatePreviewLineToPort(sceneInstance, nearbyPort);
+                } else {
+                    // Normal preview
+                    sceneInstance.wiring3DManager.updatePreviewLine(sceneInstance, worldPos);
+                }
             }
         });
         
@@ -422,12 +432,22 @@ class ModelSceneManager {
                     }
                 }
                 
-                // If routing a wire and clicked empty space, add waypoint (change direction)
+                // If routing a wire and clicked empty space
                 if (sceneInstance.wiring3DManager.currentWire) {
                     const mountingIntersects = raycaster.intersectObjects(sceneInstance.mountingSurfaces || [], true);
                     if (mountingIntersects.length > 0) {
-                        // Add waypoint at click position
-                        sceneInstance.wiring3DManager.addWaypoint(sceneInstance);
+                        const clickPos = mountingIntersects[0].point;
+                        
+                        // Check if near a port for auto-connect
+                        const nearbyPort = sceneInstance.wiring3DManager.findNearbyPort(sceneInstance, clickPos);
+                        
+                        if (nearbyPort) {
+                            // Auto-connect to nearby port
+                            sceneInstance.wiring3DManager.completeWire(sceneInstance, nearbyPort);
+                        } else {
+                            // Add waypoint at click position (change direction)
+                            sceneInstance.wiring3DManager.addWaypoint(sceneInstance);
+                        }
                     }
                     return;
                 }
@@ -455,6 +475,81 @@ class ModelSceneManager {
             } else {
                 if (!sceneInstance.wireMode) {
                     sceneInstance.deselectObject();
+                }
+            }
+        });
+
+        // Right-click handler for wire context menu
+        renderer.domElement.addEventListener('contextmenu', (event) => {
+            event.preventDefault(); // Prevent default context menu
+            
+            // Only show wire context menu in wire mode
+            if (!sceneInstance.wireMode) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Check if clicked on a wire line
+            const wires = sceneInstance.wiring3DManager.wires;
+            const wireLines = wires.map(w => w.lineMesh).filter(l => l);
+            
+            const wireIntersects = raycaster.intersectObjects(wireLines, false);
+            if (wireIntersects.length > 0) {
+                const clickedLine = wireIntersects[0].object;
+                const wire = wires.find(w => w.lineMesh === clickedLine);
+                
+                if (wire) {
+                    sceneInstance.wiring3DManager.showWireContextMenu(sceneInstance, wire, event.clientX, event.clientY);
+                }
+            }
+        });
+
+        // Double-click handler for wire segment dragging and hanging marker repositioning
+        renderer.domElement.addEventListener('dblclick', (event) => {
+            // Only allow wire dragging in wire mode
+            if (!sceneInstance.wireMode) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            
+            // First check if double-clicked on a blue hanging marker
+            const allObjects = [];
+            sceneInstance.scene.traverse(obj => {
+                if (obj.userData.isHangingWireEnd) {
+                    allObjects.push(obj);
+                }
+            });
+            
+            const hangingMarkerIntersects = raycaster.intersectObjects(allObjects, false);
+            if (hangingMarkerIntersects.length > 0) {
+                const marker = hangingMarkerIntersects[0].object;
+                const wireId = marker.userData.wireId;
+                const wire = sceneInstance.wiring3DManager.wires.find(w => w.id === wireId);
+                
+                if (wire) {
+                    sceneInstance.wiring3DManager.startHangingMarkerDrag(sceneInstance, wire, marker, renderer, camera);
+                    return;
+                }
+            }
+            
+            // Check if double-clicked on a wire line
+            const wires = sceneInstance.wiring3DManager.wires;
+            const wireLines = wires.map(w => w.lineMesh).filter(l => l);
+            
+            const wireIntersects = raycaster.intersectObjects(wireLines, false);
+            if (wireIntersects.length > 0) {
+                const clickedLine = wireIntersects[0].object;
+                const wire = wires.find(w => w.lineMesh === clickedLine);
+                const clickPoint = wireIntersects[0].point;
+                
+                if (wire) {
+                    sceneInstance.wiring3DManager.startWireDragging(sceneInstance, wire, clickPoint, renderer, camera);
                 }
             }
         });
